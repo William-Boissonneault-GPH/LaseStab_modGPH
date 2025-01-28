@@ -192,14 +192,24 @@ from PlaqueThermique import PlaqueThermique
 
 PlaqueA = PlaqueThermique((1,0.5,0.001), "Aluminium", 10, (0.01,0.01), 25)
 
-Perturbation1 = np.zeros_like(PlaqueA.matEnergie)
-Perturbation1[30,30] = 1
-
-Perturbation2 = np.zeros_like(PlaqueA.matEnergie)
-Perturbation1[30,30] = 0.5
+"""TOUT CA EST QUE DES TESTS, pas à conserver"""
 
 
-totalTime = 200
+PuissanceTotaleTEC = 5
+DimensionsTEC = (0.1,0.1)
+AireTEC = DimensionsTEC[0]*DimensionsTEC[1]
+
+
+Perturbation1 = np.zeros_like(PlaqueA.matTemperature)
+Perturbation1[30:40,30:40] = (PuissanceTotaleTEC/AireTEC)*(0.01**2)
+
+Perturbation2 = np.zeros_like(PlaqueA.matTemperature)
+Perturbation1[30,60] = 0.5
+
+Perturbation2 = np.zeros_like(PlaqueA.matTemperature)
+Perturbation1[0,1:-1] = 0.1
+
+totalTime = 10
 dTime = 1
 ### Essai de matrice de perturbation
 """for i in range(10):
@@ -216,15 +226,12 @@ dTime = 1
 from matplotlib.animation import FuncAnimation
 plt.ion()
 
-num_frames = 100
+num_frames = 1000
 dTime = totalTime/num_frames
 
 video = []
 for i in range(num_frames):
-    PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2])
-    video.append(PlaqueA.recolterMatTemperature())
-
-
+    video.append(PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2]))
 
 fig, ax = plt.subplots()
 im = ax.imshow(video[0], cmap='viridis', interpolation='none')
@@ -243,6 +250,6 @@ def update(frame):
     return [im]
 
 # Create the animation
-ani = FuncAnimation(fig, update, frames=num_frames, interval=50, blit=True)
+ani = FuncAnimation(fig, update, frames=num_frames, interval=5, blit=True)
 
 plt.show(block=True)

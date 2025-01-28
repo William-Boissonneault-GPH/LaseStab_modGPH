@@ -38,9 +38,9 @@ class PlaqueThermique():
         self.grosseurElement = (self.dimensions[0]/x_amount, self.dimensions[1]/y_amount, self.dimensions[2])
 
         ###TODO: PERMETTRE L'INITIALISATION AVEC UNE FONCTION DE TEMPÉRATURE (PAS QUE UNE TEMPÉRATURE FIXE)
-        self.matTemperatureInitiale = np.full((y_amount, x_amount), T_init + 273.15)
+        self.matTemperatureInitiale = np.full((y_amount, x_amount), float(T_init))
         ###CAUTION: Approximation cp constant depuis 0 absolu, ne devrait pas affecter le code (nous jouons avec variations)
-        self.matEnergie = self.matTemperatureInitiale * self.rho * self.cp
+        self.matTemperature = self.matTemperatureInitiale
 
         ###DICTIONNAIRE DE VALEUR UTILE
         self.dimensionsElementFinie = {
@@ -57,52 +57,56 @@ class PlaqueThermique():
         ###OPTIMIZATION: utilise beaucoup de mémoire
         ###                 pas nécessairement nécessaire si nous avons directement les points que nous voulons les échelons
         ###               -> Prendre l'historique des températures aux points désiré et render l'animation sans conserver l'historique
-        self.historiqueEnergie = [self.matEnergie]
+        self.historiqueTemp = [self.matTemperature]
         pass
 
 
     def propagationDunPasDeTemps(self, dTime, *matsEnergiePerturbation):
         #Fonction qui permet d'avancer dans le temps
-        #Matrice d'energie de perturbation en [W/m^3 s]
+        #Matrice d'energie de perturbation en [W] par element
 
         #TODO: matConduction
         #matConduction = np.array [2d]  ---> Matrice d'énergie reçu ou perdu dans chaque petit élement de volume par conduction uniquement
-        matConduction = np.zeros_like(self.matEnergie)
-            #TODO: Gerer les edge case, pour l'instant que la partie centrale conduit
-        matConduction[1:-1,1:-1] =((self.k * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
-            self.matEnergie[1:-1,0:-2] +
-            self.matEnergie[1:-1,2:] -
-            2*self.matEnergie[1:-1,1:-1]) +((self.k * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
-            self.matEnergie[0:-2,1:-1] +
-            self.matEnergie[2:,1:-1] -
-            2*self.matEnergie[1:-1,1:-1])
-
+        matConduction = np.zeros_like(self.matTemperature)
+        
+        ###Condution centrale
+        matConduction[1:-1,1:-1] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[1:-1,0:-2] +
+            self.matTemperature[1:-1,2:] -
+            2*self.matTemperature[1:-1,1:-1]) +((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[0:-2,1:-1] +
+            self.matTemperature[2:,1:-1] -
+            2*self.matTemperature[1:-1,1:-1])
+        ###Conduction côté haut
+        matConduction[0,1:-1] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[0,0:-2] +
+            self.matTemperature[0,2:] -
+            2*self.matTemperature[0,1:-1]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[1,1:-1] -
+            self.matTemperature[0,1:-1])
+       
+        #TODO: Gerer les edge case, pour l'instant que la partie centrale conduit
 
 
         #TODO: matConduction
         #matConvection = np.array [2d]  ---> Matrice d'énergie perdu dans chaque petit élement de volume par convection uniquement
-        matConvection = np.zeros_like(self.matEnergie)
+        matConvection = np.zeros_like(self.matTemperature)
 
 
-
-
-
-
-
-        self.matEnergie = self.matEnergie + matConduction + matConvection
+        self.matTemperature = self.matTemperature + matConduction + matConvection
         
+        ###OPTIMIZATION: calculer directement la matrice de perturbation en temp (pad à chaque fois)
         for matEnergiePertubation in matsEnergiePerturbation[0]:
-            self.matEnergie += (matEnergiePertubation / self.dimensionsElementFinie["Vol"]) * dTime
+            self.matTemperature += (matEnergiePertubation / self.dimensionsElementFinie["Vol"]) * dTime * (1/(self.rho * self.cp))
 
 
         ###OPTIMIZATION: utilise beaucoup de mémoire
         ###                 pas nécessairement nécessaire si nous avons directement les points que nous voulons les échelons
         ###               -> Prendre l'historique des températures aux points désiré et render l'animation sans conserver l'historique
-        self.historiqueEnergie.append(self.matEnergie)
+        self.historiqueTemp.append(self.matTemperature)
         self.time += dTime
 
-        return self.matEnergie
-    
-    def recolterMatTemperature(self):
-        self.matTemperature = (self.matEnergie / (self.rho * self.cp) ) - 273.15
         return self.matTemperature
+
+    def recolterTempAUnePosition(self, pos):
+        pass
