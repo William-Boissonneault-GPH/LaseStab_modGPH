@@ -1,0 +1,64 @@
+Documentation de développement: 
+
+Flags : 
+
+###TODO -> chose à completer
+###CAUTION -> doute et truc à faire attention
+###OPTIMIZATION -> Idée pour acceleré / enlevé de la loudeur dans le futur
+
+
+Je commence directement sur faire que les calculs nécessaire pour rapidité
+
+1. Travail en matrice np
+2. Travail en energie -> convertira en température que le nécessaire
+3. On prie pour avoir de la RAM
+
+
+1. Object plaque (dimensions, matériaux, grosseurElementFinie, coefConv, matTempInitiale)
+
+    time = 0 [s] -> temp 
+    dimensions (x, y) [m]
+
+    matériaux ---> Avoir une liste de matériaux, si matériaux est passé k,rho etc. se remplisse auto.
+                   Si custom ---> doit remplir à la main
+
+    k = Conductivité Thermique [W/m·K]
+    rho = Densité [kg/m^3]
+    cp = Chaleur spécifique  [J/kg·K]
+    alpha = Diffusivité Thermique [m^2/s]
+
+    coefConv = Coeff. de convection[W/m^2·K]
+
+    grosseurElementFinie (x,y) [m] --> largeur esperer d'un petit élement de volume
+    --> Sera transferré au plus proche possible
+
+    matEnergie = np.array [2d]  ---> Matrice d'énergie dans chaque petit élement de volume
+
+    historiqueEnergie = [matEnergie]
+
+    dimensionsElementFinie = {   ----> tous en [m]
+        "dX" : 
+        "dY" :
+        "dZ" :
+        "Vol" : 
+        "AireDessu" :
+        "AireCLong" :
+        "AireCourt" :
+    }
+
+    fonction nextStepTime(stepTime, *matPerturbation):
+        Fonction avance dans le temps
+
+        matConduction = np.array [2d]  ---> Matrice d'énergie reçu ou perdu dans chaque petit élement de volume par conduction uniquement
+        matConvection = np.array [2d]  ---> Matrice d'énergie perdu dans chaque petit élement de volume par convection uniquement
+
+        matEnergie = matEnergie + matConduction + matConvection + *matPerturbation
+        historiqueEnergie.append(matEnergie)
+
+        return matEnergie
+
+    fonction transformToTemp():
+        return matTemp = matEnergie / (rho cp)
+
+
+2. Sortir échelons

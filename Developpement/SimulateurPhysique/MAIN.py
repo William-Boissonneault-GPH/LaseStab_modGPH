@@ -1,7 +1,3 @@
-"""Pour l'instant, je vomi tout ici, ensuite quand on aura quelque chose qui fonctionne, compartimentalise"""
-import _tkinter as tkr
-
-
 
 """CODE MATLAB FOURNI PAR PROFESSEURSclose all
 clear all
@@ -186,3 +182,67 @@ end
 
 
 close(writerObj);"""
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import _tkinter as tkr
+
+from PlaqueThermique import PlaqueThermique
+
+PlaqueA = PlaqueThermique((1,0.5,0.001), "Aluminium", 10, (0.01,0.01), 25)
+
+Perturbation1 = np.zeros_like(PlaqueA.matEnergie)
+Perturbation1[30,30] = 1
+
+Perturbation2 = np.zeros_like(PlaqueA.matEnergie)
+Perturbation1[30,30] = 0.5
+
+
+totalTime = 200
+dTime = 1
+### Essai de matrice de perturbation
+"""for i in range(10):
+    PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2])
+
+    plt.imshow(PlaqueA.recolterMatTemperature())
+    plt.colorbar()
+    plt.title(PlaqueA.time)
+    plt.show()"""
+
+
+###Fonction redneck pour animer la propagation
+###TODO: QUE POUR TESTER ! C<EST MAUVAIS COMME FACONS
+from matplotlib.animation import FuncAnimation
+plt.ion()
+
+num_frames = 100
+dTime = totalTime/num_frames
+
+video = []
+for i in range(num_frames):
+    PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2])
+    video.append(PlaqueA.recolterMatTemperature())
+
+
+
+fig, ax = plt.subplots()
+im = ax.imshow(video[0], cmap='viridis', interpolation='none')
+
+cbar = plt.colorbar(im, ax=ax)
+cbar.set_label('Température en C')  # Label for the colorbar
+
+max_value = np.max(video)
+im.set_clim(25, max_value)
+
+ax.set_title(f"Time = 0 ms")
+
+def update(frame):
+    im.set_array(video[frame])
+    ax.set_title(f"Time = {round(frame * dTime,2)} s")
+    return [im]
+
+# Create the animation
+ani = FuncAnimation(fig, update, frames=num_frames, interval=50, blit=True)
+
+plt.show(block=True)
