@@ -246,8 +246,6 @@ im.set_clim(25, max_value)
 
 ax_im.set_title(f"Time = 0 ms")
 
-
-
 # Setup for the history plot
 ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
 ax_hist.set_ylim(25, np.max(averageTemp)+0.1)  # Y-axis for temperature
