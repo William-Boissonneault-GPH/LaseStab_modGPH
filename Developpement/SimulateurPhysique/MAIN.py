@@ -190,24 +190,18 @@ import _tkinter as tkr
 
 from PlaqueThermique import PlaqueThermique
 
-PlaqueA = PlaqueThermique((1,0.5,0.001), "Aluminium", 60, (0.01,0.01), 25)
+PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
 
 """TOUT CA EST QUE DES TESTS, pas à conserver"""
 
 
 PuissanceTotaleTEC = 5
-DimensionsTEC = (0.1,0.1)
+DimensionsTEC = (0.015,0.156)
 AireTEC = DimensionsTEC[0]*DimensionsTEC[1]
 
 
 Perturbation1 = np.zeros_like(PlaqueA.matTemperature)
-Perturbation1[30:40,30:40] = (PuissanceTotaleTEC/AireTEC)*(0.01**2)
-
-Perturbation2 = np.zeros_like(PlaqueA.matTemperature)
-Perturbation1[30,60] = 0.5
-
-Perturbation2 = np.zeros_like(PlaqueA.matTemperature)
-Perturbation1[0,1:-1] = 0.1
+Perturbation1[30:45,30:45] = (PuissanceTotaleTEC/AireTEC)*(0.001**2)
 
 totalTime = 200
 dTime = 1
@@ -226,14 +220,14 @@ dTime = 1
 from matplotlib.animation import FuncAnimation
 plt.ion()
 
-num_frames = 1000
+num_frames = 100000
 dTime = totalTime/num_frames
 
 video = []
 averageTemp = []
 for i in range(num_frames):
-    video.append(PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1, Perturbation2]))
-    averageTemp.append(np.average(PlaqueA.matTemperature[34:36,34:36]))
+    video.append(PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1]))
+    averageTemp.append(np.average(PlaqueA.matTemperature[34:36,100:102]))
 
 fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
 im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
@@ -248,7 +242,7 @@ ax_im.set_title(f"Time = 0 ms")
 
 # Setup for the history plot
 ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
-ax_hist.set_ylim(25, np.max(averageTemp)+0.1)  # Y-axis for temperature
+ax_hist.set_ylim(25, np.max(video)+0.1)  # Y-axis for temperature
 ax_hist.set_xlabel("Time (s)")
 ax_hist.set_ylabel("Average Temperature (°C)")
 
@@ -270,6 +264,6 @@ def update(frame):
     return [im, line_hist]
 
 # Create the animation
-ani = FuncAnimation(fig, update, frames=num_frames, interval=1, blit=False)
+ani = FuncAnimation(fig, update, frames=range(0, num_frames, 50), interval=1, blit=False)
 
 plt.show(block=True)
