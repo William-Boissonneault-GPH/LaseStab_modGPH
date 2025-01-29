@@ -14,6 +14,7 @@ class PlaqueThermique():
         #self.cp = Chaleur spécifique  [J/kg·K]
         #self.alpha = Diffusivité Thermique [m^2/s]
         #self.coefConv = Coeff. de convection[W/m^2·K]
+        
         if type(matériaux) == tuple:
             self.k, self.rho, self.cp = matériaux
         else:
@@ -61,11 +62,10 @@ class PlaqueThermique():
         pass
 
 
-    def propagationDunPasDeTemps(self, dTime, *matsEnergiePerturbation):
+    def propagationDunPasDeTemps(self, dTime, T_ambiant, *matsEnergiePerturbation):
         #Fonction qui permet d'avancer dans le temps
         #Matrice d'energie de perturbation en [W] par element
 
-        #TODO: matConduction
         #matConduction = np.array [2d]  ---> Matrice d'énergie reçu ou perdu dans chaque petit élement de volume par conduction uniquement
         matConduction = np.zeros_like(self.matTemperature)
         
@@ -84,15 +84,72 @@ class PlaqueThermique():
             2*self.matTemperature[0,1:-1]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
             self.matTemperature[1,1:-1] -
             self.matTemperature[0,1:-1])
-       
-        #TODO: Gerer les edge case, pour l'instant que la partie centrale conduit
+        ###Conduction côté bas
+        matConduction[-1,1:-1] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[-1,0:-2] +
+            self.matTemperature[-1,2:] -
+            2*self.matTemperature[-1,1:-1]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[-2,1:-1] -
+            self.matTemperature[-1,1:-1])
+        ###Conduction côté droit
+        matConduction[1:-1,-1] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[1:-1,-2] -
+            self.matTemperature[1:-1,-1]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[0:-2,-1] +
+            self.matTemperature[2:,-1] -
+            2*self.matTemperature[1:-1,-1])
+        ###Conduction côté gauche
+        matConduction[1:-1,0] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[1:-1,1] -
+            self.matTemperature[1:-1,0]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[0:-2,0] +
+            self.matTemperature[2:,0] -
+            2*self.matTemperature[1:-1,0])
+        ###Convection coins
+        matConduction[0,0] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[0,1] -
+            self.matTemperature[0,0]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[1,0] -
+            self.matTemperature[0,0])
+        matConduction[0,-1] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[0,-2] -
+            self.matTemperature[0,-1]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[1,-1] -
+            self.matTemperature[0,-1])
+        matConduction[-1,0] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[-1,1] -
+            self.matTemperature[-1,0]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[-2,0] -
+            self.matTemperature[-1,0])
+        matConduction[-1,-1] =((self.alpha * dTime) / (self.dimensionsElementFinie["dX"]**2)) * ( 
+            self.matTemperature[-1,-2] -
+            self.matTemperature[-1,-1]) + ((self.alpha * dTime) / (self.dimensionsElementFinie["dY"]**2)) * (
+            self.matTemperature[-2,-1] -
+            self.matTemperature[-1,-1])
 
 
-        #TODO: matConduction
+
+
+
+
         #matConvection = np.array [2d]  ---> Matrice d'énergie perdu dans chaque petit élement de volume par convection uniquement
         matConvection = np.zeros_like(self.matTemperature)
-
-
+        fact_conv = (dTime * self.coefConv / (self.rho * self.cp))
+        #ajoute deux face up et down
+        ###Devrait enlever convection sous TEC...
+        matConvection[0:,0:] = fact_conv * (T_ambiant - self.matTemperature) * (
+            self.dimensionsElementFinie["AireDessu"] * 2 / self.dimensionsElementFinie["Vol"])
+        
+        #ajout côté
+        matConvection[0:,0] = matConvection[0:,0] + fact_conv * (T_ambiant - self.matTemperature[0:,0]) * (
+            self.dimensionsElementFinie["AireCCourt"] / self.dimensionsElementFinie["Vol"])
+        matConvection[0:,-1] = matConvection[0:,-1] + fact_conv * (T_ambiant - self.matTemperature[0:,-1]) * (
+            self.dimensionsElementFinie["AireCCourt"] / self.dimensionsElementFinie["Vol"])
+        matConvection[0,0:] = matConvection[0,0:] + fact_conv * (T_ambiant - self.matTemperature[0,0:]) * (
+            self.dimensionsElementFinie["AireCLong"] / self.dimensionsElementFinie["Vol"])
+        matConvection[-1,0:] = matConvection[-1,0:] + fact_conv * (T_ambiant - self.matTemperature[-1,0:]) * (
+            self.dimensionsElementFinie["AireCLong"] / self.dimensionsElementFinie["Vol"])
+        
         self.matTemperature = self.matTemperature + matConduction + matConvection
         
         ###OPTIMIZATION: calculer directement la matrice de perturbation en temp (pad à chaque fois)

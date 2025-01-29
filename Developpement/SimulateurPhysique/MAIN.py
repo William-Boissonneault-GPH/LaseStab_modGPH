@@ -190,7 +190,7 @@ import _tkinter as tkr
 
 from PlaqueThermique import PlaqueThermique
 
-PlaqueA = PlaqueThermique((1,0.5,0.001), "Aluminium", 10, (0.01,0.01), 25)
+PlaqueA = PlaqueThermique((1,0.5,0.001), "Aluminium", 60, (0.01,0.01), 25)
 
 """TOUT CA EST QUE DES TESTS, pas à conserver"""
 
@@ -209,7 +209,7 @@ Perturbation1[30,60] = 0.5
 Perturbation2 = np.zeros_like(PlaqueA.matTemperature)
 Perturbation1[0,1:-1] = 0.1
 
-totalTime = 10
+totalTime = 200
 dTime = 1
 ### Essai de matrice de perturbation
 """for i in range(10):
@@ -230,26 +230,48 @@ num_frames = 1000
 dTime = totalTime/num_frames
 
 video = []
+averageTemp = []
 for i in range(num_frames):
-    video.append(PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2]))
+    video.append(PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1, Perturbation2]))
+    averageTemp.append(np.average(PlaqueA.matTemperature[34:36,34:36]))
 
-fig, ax = plt.subplots()
-im = ax.imshow(video[0], cmap='viridis', interpolation='none')
+fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
+im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
 
-cbar = plt.colorbar(im, ax=ax)
+cbar = plt.colorbar(im, ax=ax_im)
 cbar.set_label('Température en C')  # Label for the colorbar
 
 max_value = np.max(video)
 im.set_clim(25, max_value)
 
-ax.set_title(f"Time = 0 ms")
+ax_im.set_title(f"Time = 0 ms")
+
+
+
+# Setup for the history plot
+ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
+ax_hist.set_ylim(25, np.max(averageTemp)+0.1)  # Y-axis for temperature
+ax_hist.set_xlabel("Time (s)")
+ax_hist.set_ylabel("Average Temperature (°C)")
+
+# Line plot for temperature history
+line_hist, = ax_hist.plot([], [], color='red', label="Average Temperature")
+ax_hist.legend()
+
+
 
 def update(frame):
     im.set_array(video[frame])
-    ax.set_title(f"Time = {round(frame * dTime,2)} s")
-    return [im]
+    ax_im.set_title(f"Time = {round(frame * dTime,2)} s")
+
+
+    # Update the history plot
+    line_hist.set_data(np.arange(frame + 1) * dTime, averageTemp[:frame + 1])
+    ax_hist.set_xlim(0, max((frame + 1) * dTime, num_frames * dTime))
+    
+    return [im, line_hist]
 
 # Create the animation
-ani = FuncAnimation(fig, update, frames=num_frames, interval=5, blit=True)
+ani = FuncAnimation(fig, update, frames=num_frames, interval=1, blit=False)
 
 plt.show(block=True)
