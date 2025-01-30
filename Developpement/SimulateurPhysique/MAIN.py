@@ -264,6 +264,6 @@ def update(frame):
     return [im, line_hist]
 
 # Create the animation
-ani = FuncAnimation(fig, update, frames=range(0, num_frames, 50), interval=1, blit=False)
+ani = FuncAnimation(fig, update, frames=range(0, num_frames, 200), interval=1, blit=False)
 
 plt.show(block=True)
