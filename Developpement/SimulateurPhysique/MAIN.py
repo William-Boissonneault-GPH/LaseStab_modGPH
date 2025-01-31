@@ -183,7 +183,7 @@ end
 
 close(writerObj);"""
 
-
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import _tkinter as tkr
@@ -191,9 +191,6 @@ import _tkinter as tkr
 from PlaqueThermique import PlaqueThermique
 
 PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
-
-"""TOUT CA EST QUE DES TESTS, pas à conserver"""
-
 
 PuissanceTotaleTEC = 5
 DimensionsTEC = (0.015,0.156)
@@ -204,13 +201,13 @@ Perturbation1 = np.zeros_like(PlaqueA.matTemperature)
 Perturbation1[30:45,30:45] = (PuissanceTotaleTEC/AireTEC)*(0.001**2)
 
 ### Essai de matrice de perturbation
-"""for i in range(10):
+# for i in range(10):
     PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2])
 
     plt.imshow(PlaqueA.recolterMatTemperature())
     plt.colorbar()
     plt.title(PlaqueA.time)
-    plt.show()"""
+    plt.show()
 
 
 ###Fonction redneck pour animer la propagation
@@ -250,6 +247,93 @@ ax_im.set_title(f"Time = 0 ms")
 # Setup for the history plot
 ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
 ax_hist.set_ylim(25, np.max(video)+0.1)  # Y-axis for temperature
+ax_hist.set_xlabel("Time (s)")
+ax_hist.set_ylabel("Average Temperature (°C)")
+
+# Line plot for temperature history
+line_hist, = ax_hist.plot([], [], color='red', label="Average Temperature")
+ax_hist.legend()
+
+
+def update(frame):
+    im.set_array(video[frame])
+    ax_im.set_title(f"Time = {round(frame * animationStep * dTime,2)} s")
+
+
+    # Update the history plot
+    line_hist.set_data(np.arange(frame * animationStep + 1) * dTime, averageTemp[:frame *animationStep + 1])
+    ax_hist.set_xlim(0, max((frame + 1) * dTime, num_frames * dTime))
+    
+    return [im, line_hist]
+
+# Create the animation
+ani = FuncAnimation(fig, update, frames=range(0, int(num_frames/animationStep)), interval=1, blit=False)
+
+plt.show(block=True)
+
+
+"""
+
+
+
+
+
+
+'''Test William Actuateur'''
+import numpy as np
+import matplotlib.pyplot as plt
+import _tkinter as tkr
+
+from PlaqueThermique import PlaqueThermique
+from ActuateurThermique import ActionneurThermique
+
+PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
+TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie) 
+
+from matplotlib.animation import FuncAnimation
+plt.ion()
+
+
+###Echelon de 6A
+echelonCourant = -6
+TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,25)
+
+T_amb = 25
+
+#garder le même ratio
+totalTime = 300
+num_frames = 120000
+dTime = totalTime/num_frames
+###Nombre de frame skippé dans l'animation
+animationStep = 400
+
+video = []
+averageTemp = []
+
+for i in range(num_frames):
+    if i % animationStep == 0:
+        video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation]))
+        TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_amb)
+    else:
+        PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation])
+    averageTemp.append(np.average(PlaqueA.matTemperature[34:36,12:14]))
+
+
+fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
+im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
+
+cbar = plt.colorbar(im, ax=ax_im)
+cbar.set_label('Température en C')  # Label for the colorbar
+
+max_value = np.max(video)
+min_value = np.min(video)
+im.set_clim(min_value, max_value)
+
+ax_im.set_title(f"Time = 0 ms")
+
+# Setup for the history plot
+ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
+ax_hist.set_ylim(np.min(averageTemp)-0.1, np.max(averageTemp)+0.1)  # Y-axis for temperature
 ax_hist.set_xlabel("Time (s)")
 ax_hist.set_ylabel("Average Temperature (°C)")
 
