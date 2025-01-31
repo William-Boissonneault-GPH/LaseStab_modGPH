@@ -1,323 +1,55 @@
-
-"""CODE MATLAB FOURNI PAR PROFESSEURSclose all
-clear all
-clc
-
-F(length(zoom)) = struct('cdata',[],'colormap',[]);
-writerObj = VideoWriter('TemperatureDistribution1D.avi');
-open(writerObj);
-
-%% Paramètres 
-
-TempsTotal = 500;           % Durée de la simulation
-
-Lx = 120e-3;                % Longueur [m]
-thickness = 1.5e-3;         % Épaisseur de la plaque [m]
-
-Nx = 120;                   % Nombre d'élements en x
-
-% Propriétes du matériau, ici on a pour l'Aluminium
-k = 205;                    % Conductivité Thermique [W/m·K]
-rho = 2700;                 % Densité [kg/m^3]
-cp = 900;                   % Chaleur spécifique  [J/kg·K]
-alpha = k / (rho * cp);     % Diffusivité Thermique [m^2/s]
-
-h_conv = 20;                % Coeff. de convection[W/m^2·K]
-h_conv = 0;                 % commenter pour enlever la convection
-%% Paramètres calculés
-
-dx = Lx / Nx;               % Pas de discrétisation en x
-dy = thickness;             % épaisseur en y
-dz = thickness;             % épaisseur en z
-
-dt = dx^2/(8*alpha);        % Pas en temps [s]
-                            % Choisi pour assurer la stabilité 
-
-Nt = round(TempsTotal/dt);  % Nombre d'itérations temporelles
-
-                            % Pour la convection
-aire_bouts = dy*dz;         % aire des bouts de la barre
-aire_sides = dx*dz;         % aire des côtés , pour chaque éléement
-aire_top = dx*dy;           % aire du dessus et du dessous
-
-volume = dx*dy*dz;          % Volume d'un élément
-
-Temps = (0:Nt-1)*dt;        % Vecteur de temps pour la simulation
-Position = (0:Nx-1).*dx;    % Vecteur de position 
-
-%% Puissance déposée par l'actuacteur
-
-% Variable power input (example: 5 W localized input)
-Pin = 1.5;                  % Puissance [W]
-%Pin = 0;                   % commenter pour mettre de la puissance 
-
-Pin_loc_x =  Lx/4;          % Localisation sur la barre [m]
-Pin_loc_x =round(Pin_loc_x/dx); %Élément qui reçoit la puissance de l'actuateur
-
-P = zeros(Nx, 1);           % Matrice de puissance à ajouter à chaque elt
-P(Pin_loc_x) = Pin;         % La puissance est mise sur un seul élément
-                            % En pratique, la puissance déposée sera probablement 
-                            % répartie sur plusieurs éléments. 
-%% Conditions initiales
-T_piece = 273+25;           % Tempéraure pièce [K]
-
-T = T_piece * ones(Nx, 1);  % Temperature de tous les éléments
-
-T_loc_x = Lx/2;             % Localisation d'un dirac en Température [m]
-T_loc_x = round(T_loc_x/dx);% Element qui est plus chaud
-
-%T(T_loc_x) = 273+45;        % Un élement plus chaud
-
-Therm_loc_x = 3*Lx/4;       %Position de la mesure de température
-Therm_loc_x = round(Therm_loc_x/dx);
-
-%% Création et positionnement de la figure
-
-f1 = figure(1)
-f1.Position = [1200 1000 1400 460];
-f1.Position =[600 1000 2000 460]
-
-%% Préallocation des vecteurs qui seront utilisés dans la boucle
-
-energy_added = zeros(1,Nt);
-energy_loss = zeros(1,Nt);
-
-thermistance = zeros(1,Nt);
-Tnew = 0*T;
-
-
-%% Itération
-%
-% En pratique on va vouloir précalculer le maximum de coefficients pour accélérer la boucle
-% On aura aussi avantage à vectoriser le code pour Matlab
-% ici on privilégie la clarté 
-
-for t = 1:Nt            % Itération sur chaque temps
-
-
-    for i = 1:Nx        % Itération sur les points en x
-                        % Sans la normalisation par dt/(rho cp), l'équation est en [W/m^3]
-
-        T_new(i) = T(i);                                                                            % Température précédente 
-        
-        if(i == 1)      % Le 1er elt n'a pas de voisin à gauche
-            T_new(i) = T_new(i) + dt / (rho * cp) * k * (T(i+1) - T(i) ) / dx^2;                    % Conduction de l'unique voisin
-            T_new(i) = T_new(i) + dt / (rho * cp) * h_conv * (T_piece - T(i))*aire_bouts/volume;    % convection 1 surface du bout
-
-
-        elseif(i==Nx)   % Le dernier elt n'a pas de voisin à droite
-            T_new(i) = T_new(i) + dt / (rho * cp) * k * (-T(i) + T(i-1) ) / dx^2;                   % Conduction de l'unique voisin
-            T_new(i) = T_new(i) + dt / (rho * cp) * h_conv * (T_piece - T(i))*aire_bouts/volume;    % convection 1 surface du bout
-        else
-            T_new(i) = T_new(i) + dt / (rho * cp) * k * (T(i+1) - 2*T(i) + T(i-1)) / dx^2;          % Conduction des voisins
-        end
-
-        T_new(i) = T_new(i) + dt / (rho * cp) * P(i)/volume;                                        % Puissance actuateur / perturbation
-        T_new(i) = T_new(i) + dt / (rho * cp) * h_conv * (T_piece - T(i))*2*aire_sides/volume;      % convection 2 surfaces de côté
-        T_new(i) = T_new(i) + dt / (rho * cp) * h_conv * (T_piece - T(i))*2*aire_top/volume;        % convection 2 surfaces dessus / dessous
-
-
-    end
-    
-    % On a terminé la mise à jour de la température pour ce tour;
-    T = T_new;
-
-    thermistance(t) = T(Therm_loc_x);
-
-    % Pour vérification, bilan d'énergie
-
-    % Énergie ajoutée dans le systeme par l'actuateur
-    energy_added(t) = sum(P(:)) * dt;
-
-    % Énergie dissipée par convection
-    energy_loss_sides  = h_conv * sum(T - T_piece)   * 2*aire_sides * dt;
-    energy_loss_top    = h_conv * sum(T - T_piece)   * 2*aire_top * dt;
-    energy_loss_bout_1 = h_conv * (T(1) - T_piece)   * aire_bouts * dt;
-    energy_loss_bout_2 = h_conv * (T(end) - T_piece) * aire_bouts * dt;
-
-    % Énergie totale dissipée
-    energy_loss(t) = energy_loss_sides + energy_loss_top + energy_loss_bout_1 + energy_loss_bout_2;
-
-    % Affichage
-    if mod(t, round(Nt/1000)) == 0 || t==1
-        clf
-        subplot(131)
-        plot(Position,T-273);
-        title(['Température à t = ', num2str(t*dt), ' s'],'FontSize',16);
-        xlabel('Position sur la barre [mm]','FontSize',16);
-        ylabel('Température (C)','FontSize',16);
-        %ylim([15 35])
-        %xlim([0 120])
-        grid on
-        ax = gca; % Get current axes
-        ax.FontSize = 16; % Set font size for tick labels
-        
-        subplot(132)
-        plot(Temps(1:t),thermistance(1:t)-273)
-        hold all
-        grid on
-        %ylim([20 35])
-
-        ax = gca; % Get current axes
-        ax.FontSize = 16; % Set font size for tick labels
-        xlabel('Temps [s]','FontSize',16)
-        ylabel('Température [C]','FontSize',16)
-        title('Température à la thermistance','FontSize',16)
-          
-        subplot(133)
-        
-        hold all
-        plot(Temps(1:t),energy_added(1:t))
-        plot(Temps(1:t),energy_loss(1:t))
-        xlabel('Time [s]','FontSize',16)
-        ylabel('Énergie dnas l''itération','FontSize',16)
-        legend('Energie déposée','Energie dissipée par convection','FontSize',16,'Location','southeast')
-        grid on
-        drawnow;
-
-        F(i) = getframe(gcf);
-        writeVideo(writerObj,F(i)); 
-    end
-end
-
-
-close(writerObj);"""
-
-"""
-import numpy as np
-import matplotlib.pyplot as plt
-import _tkinter as tkr
-
-from PlaqueThermique import PlaqueThermique
-
-PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
-
-PuissanceTotaleTEC = 5
-DimensionsTEC = (0.015,0.156)
-AireTEC = DimensionsTEC[0]*DimensionsTEC[1]
-
-
-Perturbation1 = np.zeros_like(PlaqueA.matTemperature)
-Perturbation1[30:45,30:45] = (PuissanceTotaleTEC/AireTEC)*(0.001**2)
-
-### Essai de matrice de perturbation
-# for i in range(10):
-    PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2])
-
-    plt.imshow(PlaqueA.recolterMatTemperature())
-    plt.colorbar()
-    plt.title(PlaqueA.time)
-    plt.show()
-
-
-###Fonction redneck pour animer la propagation
-###TODO: QUE POUR TESTER ! C<EST MAUVAIS COMME FACONS
-from matplotlib.animation import FuncAnimation
-plt.ion()
-
-#garder le même ratio
-totalTime = 200
-num_frames = 70000
-dTime = totalTime/num_frames
-###Nombre de frame skippé dans l'animation
-animationStep = 400
-
-video = []
-averageTemp = []
-
-for i in range(num_frames):
-    if i % animationStep == 0:
-        video.append(PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1]))
-    else:
-        PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1])
-    averageTemp.append(np.average(PlaqueA.matTemperature[34:36,100:102]))
-
-
-fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
-im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
-
-cbar = plt.colorbar(im, ax=ax_im)
-cbar.set_label('Température en C')  # Label for the colorbar
-
-max_value = np.max(video)
-im.set_clim(25, max_value)
-
-ax_im.set_title(f"Time = 0 ms")
-
-# Setup for the history plot
-ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
-ax_hist.set_ylim(25, np.max(video)+0.1)  # Y-axis for temperature
-ax_hist.set_xlabel("Time (s)")
-ax_hist.set_ylabel("Average Temperature (°C)")
-
-# Line plot for temperature history
-line_hist, = ax_hist.plot([], [], color='red', label="Average Temperature")
-ax_hist.legend()
-
-
-def update(frame):
-    im.set_array(video[frame])
-    ax_im.set_title(f"Time = {round(frame * animationStep * dTime,2)} s")
-
-
-    # Update the history plot
-    line_hist.set_data(np.arange(frame * animationStep + 1) * dTime, averageTemp[:frame *animationStep + 1])
-    ax_hist.set_xlim(0, max((frame + 1) * dTime, num_frames * dTime))
-    
-    return [im, line_hist]
-
-# Create the animation
-ani = FuncAnimation(fig, update, frames=range(0, int(num_frames/animationStep)), interval=1, blit=False)
-
-plt.show(block=True)
-
-
-"""
-
-
-
-
-
-
-'''Test William Actuateur'''
 import numpy as np
 import matplotlib.pyplot as plt
 import _tkinter as tkr
 
 from PlaqueThermique import PlaqueThermique
 from ActuateurThermique import ActionneurThermique
+from thermistance import thermo
 
 PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
-TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie) 
+TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
+
+thermo1 = thermo(position=(0.03, 0.02), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo2 = thermo(position=(0.07, 0.04), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo3 = thermo(position=(0.10, 0.06), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+Thermistances = [thermo1,thermo2,thermo3]
+
 
 from matplotlib.animation import FuncAnimation
 plt.ion()
 
-
 ###Echelon de 6A
-echelonCourant = -6
+echelonCourant = 3
 TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,25)
 
 T_amb = 25
 
 #garder le même ratio
-totalTime = 300
-num_frames = 120000
+totalTime = 600
+num_frames = 240000
 dTime = totalTime/num_frames
 ###Nombre de frame skippé dans l'animation
 animationStep = 400
 
 video = []
-averageTemp = []
+temperatures = [[],[],[]]
 
 for i in range(num_frames):
+
+    ###Effectue un échelon d'opération à mi chemin
+    if i == num_frames/2:
+        echelonCourant = 6
+
     if i % animationStep == 0:
         video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation]))
         TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_amb)
     else:
         PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation])
-    averageTemp.append(np.average(PlaqueA.matTemperature[34:36,12:14]))
+    
+    for j, thermistance in enumerate(Thermistances):
+        temperatures[j].append(thermistance.lire_temperature())
 
+temperatures = np.array(temperatures)
 
 fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
 im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
@@ -333,25 +65,35 @@ ax_im.set_title(f"Time = 0 ms")
 
 # Setup for the history plot
 ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
-ax_hist.set_ylim(np.min(averageTemp)-0.1, np.max(averageTemp)+0.1)  # Y-axis for temperature
+ax_hist.set_ylim(np.min(temperatures)-0.1, np.max(temperatures)+0.1)  # Y-axis for temperature
 ax_hist.set_xlabel("Time (s)")
 ax_hist.set_ylabel("Average Temperature (°C)")
 
-# Line plot for temperature history
-line_hist, = ax_hist.plot([], [], color='red', label="Average Temperature")
+# Define three separate line objects for the history plot
+line_hist1, = ax_hist.plot([], [], color='red', label="Thermo 1")
+line_hist2, = ax_hist.plot([], [], color='blue', label="Thermo 2")
+line_hist3, = ax_hist.plot([], [], color='orange', label="Thermo 3")
 ax_hist.legend()
-
 
 def update(frame):
     im.set_array(video[frame])
-    ax_im.set_title(f"Time = {round(frame * animationStep * dTime,2)} s")
+    ax_im.set_title(f"Time = {round(frame * animationStep * dTime, 2)} s")
 
-
-    # Update the history plot
-    line_hist.set_data(np.arange(frame * animationStep + 1) * dTime, averageTemp[:frame *animationStep + 1])
-    ax_hist.set_xlim(0, max((frame + 1) * dTime, num_frames * dTime))
+    # Update the history plots for all three lines
+    #time_values = np.arange(frame * animationStep + 1) * dTime
     
-    return [im, line_hist]
+    line_hist1.set_data(np.arange(frame * animationStep + 1) * dTime, temperatures[0][:frame *animationStep + 1])
+    line_hist2.set_data(np.arange(frame * animationStep + 1) * dTime, temperatures[1][:frame *animationStep + 1])
+    line_hist3.set_data(np.arange(frame * animationStep + 1) * dTime, temperatures[2][:frame *animationStep + 1])
+    
+    # Adjust x-axis limits dynamically
+    #ax_hist.set_xlim(0, max((frame + 1) * dTime, num_frames * dTime))
+    
+    # Optionally adjust y-axis limits dynamically
+    #ax_hist.set_ylim(min(min(thermo1_temps), min(thermo2_temps), min(thermo3_temps)),
+    #                 max(max(thermo1_temps), max(thermo2_temps), max(thermo3_temps)))
+    
+    return [im, line_hist1, line_hist2, line_hist3]
 
 # Create the animation
 ani = FuncAnimation(fig, update, frames=range(0, int(num_frames/animationStep)), interval=1, blit=False)
