@@ -160,7 +160,8 @@ class PlaqueThermique():
         ###OPTIMIZATION: utilise beaucoup de mémoire
         ###                 pas nécessairement nécessaire si nous avons directement les points que nous voulons les échelons
         ###               -> Prendre l'historique des températures aux points désiré et render l'animation sans conserver l'historique
-        self.historiqueTemp.append(self.matTemperature)
+
+        #self.historiqueTemp.append(self.matTemperature)
         self.time += dTime
 
         return self.matTemperature

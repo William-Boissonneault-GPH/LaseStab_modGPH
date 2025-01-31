@@ -20,10 +20,8 @@ DeltaT = data[:, 0]
 Current = data[:, 1]
 Q = data[:, 2]
 
-# Unique current values
 unique_currents = np.unique(Current)
 
-# Create a dictionary to store linear fits for each current
 fits = {}
 for current in unique_currents:
     mask = Current == current
@@ -33,7 +31,6 @@ for current in unique_currents:
     coefficients = np.polyfit(DeltaT_subset, Q_subset, 1)
     fits[current] = coefficients
 
-# Function to predict Q based on DeltaT and Current
 def predict_Q(deltaT, current):
     # Interpolate between currents
     currents = np.array(list(fits.keys()))
@@ -47,3 +44,5 @@ def predict_Q(deltaT, current):
     intercept = intercept_interp(current)
 
     return slope * deltaT + intercept
+
+print(predict_Q(12, 2.7))

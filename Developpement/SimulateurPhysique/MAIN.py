@@ -203,8 +203,6 @@ AireTEC = DimensionsTEC[0]*DimensionsTEC[1]
 Perturbation1 = np.zeros_like(PlaqueA.matTemperature)
 Perturbation1[30:45,30:45] = (PuissanceTotaleTEC/AireTEC)*(0.001**2)
 
-totalTime = 200
-dTime = 1
 ### Essai de matrice de perturbation
 """for i in range(10):
     PlaqueA.propagationDunPasDeTemps(dTime, [Perturbation1, Perturbation2])
@@ -220,14 +218,23 @@ dTime = 1
 from matplotlib.animation import FuncAnimation
 plt.ion()
 
-num_frames = 100000
+#garder le même ratio
+totalTime = 200
+num_frames = 70000
 dTime = totalTime/num_frames
+###Nombre de frame skippé dans l'animation
+animationStep = 400
 
 video = []
 averageTemp = []
+
 for i in range(num_frames):
-    video.append(PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1]))
+    if i % animationStep == 0:
+        video.append(PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1]))
+    else:
+        PlaqueA.propagationDunPasDeTemps(dTime, 25, [Perturbation1])
     averageTemp.append(np.average(PlaqueA.matTemperature[34:36,100:102]))
+
 
 fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
 im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
@@ -251,19 +258,18 @@ line_hist, = ax_hist.plot([], [], color='red', label="Average Temperature")
 ax_hist.legend()
 
 
-
 def update(frame):
     im.set_array(video[frame])
-    ax_im.set_title(f"Time = {round(frame * dTime,2)} s")
+    ax_im.set_title(f"Time = {round(frame * animationStep * dTime,2)} s")
 
 
     # Update the history plot
-    line_hist.set_data(np.arange(frame + 1) * dTime, averageTemp[:frame + 1])
+    line_hist.set_data(np.arange(frame * animationStep + 1) * dTime, averageTemp[:frame *animationStep + 1])
     ax_hist.set_xlim(0, max((frame + 1) * dTime, num_frames * dTime))
     
     return [im, line_hist]
 
 # Create the animation
-ani = FuncAnimation(fig, update, frames=range(0, num_frames, 200), interval=1, blit=False)
+ani = FuncAnimation(fig, update, frames=range(0, int(num_frames/animationStep)), interval=1, blit=False)
 
 plt.show(block=True)
