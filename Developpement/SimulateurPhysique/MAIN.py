@@ -1,17 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import _tkinter as tkr
+import csv
 
 from PlaqueThermique import PlaqueThermique
 from ActuateurThermique import ActionneurThermique
 from thermistance import thermo
 
-PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
+PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 15, (0.001,0.001), 24)
 TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
-thermo1 = thermo(position=(0.03, 0.02), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-thermo2 = thermo(position=(0.07, 0.04), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-thermo3 = thermo(position=(0.10, 0.06), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo1 = thermo(position=(0.104, 0.031), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo2 = thermo(position=(0.058, 0.031), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo3 = thermo(position=(0.012, 0.031), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
 Thermistances = [thermo1,thermo2,thermo3]
 
 
@@ -19,26 +20,26 @@ from matplotlib.animation import FuncAnimation
 plt.ion()
 
 ###Echelon de 6A
-echelonCourant = 3
-TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,25)
+echelonCourant = 0.3
+TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,24)
 
-T_amb = 25
+T_amb = 24
 
 #garder le même ratio
-totalTime = 600
-num_frames = 240000
+totalTime = 1600
+num_frames = 580000
 dTime = totalTime/num_frames
 ###Nombre de frame skippé dans l'animation
-animationStep = 400
+animationStep = 1600
 
 video = []
 temperatures = [[],[],[]]
+time = []
 
 for i in range(num_frames):
-
     ###Effectue un échelon d'opération à mi chemin
     if i == num_frames/2:
-        echelonCourant = 6
+        echelonCourant = 0.2
 
     if i % animationStep == 0:
         video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation]))
@@ -48,6 +49,7 @@ for i in range(num_frames):
     
     for j, thermistance in enumerate(Thermistances):
         temperatures[j].append(thermistance.lire_temperature())
+    time.append(i*dTime)
 
 temperatures = np.array(temperatures)
 
@@ -99,3 +101,20 @@ def update(frame):
 ani = FuncAnimation(fig, update, frames=range(0, int(num_frames/animationStep)), interval=1, blit=False)
 
 plt.show(block=True)
+
+
+
+
+###Write CSV
+# Transpose lists (convert them into rows)
+rows = zip(time, temperatures[0], temperatures[1], temperatures[2])
+
+# Write to CSV
+with open("output.csv", "w", newline="") as file:
+    writer = csv.writer(file)
+    # Write header
+    writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
+    # Write data
+    writer.writerows(rows)
+
+print("CSV file saved successfully!")
