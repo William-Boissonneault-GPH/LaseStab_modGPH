@@ -89,7 +89,6 @@ class ActionneurThermique:
         
         if courant == 0:
             Q_tot = 0
-        
-        print(f"Q du Tec {Q_tot}, T_h {T_h}")
+#print(f"Q du Tec {Q_tot}, T_h {T_h}")
         self.matPerturbation = self.couplage* self.matElementBinaire * Q_tot / self.nombreElement
         
