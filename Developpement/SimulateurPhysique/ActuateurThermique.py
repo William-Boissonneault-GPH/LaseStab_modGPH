@@ -72,6 +72,9 @@ class ActionneurThermique:
         self.aireEnM2_element = self.aireEnM2 / self.nombreElement
 
         self.matElementBinaire[Indices[0]:Indices[1], Indices[2]:Indices[3]] = 1
+
+        ###le Tec n'est pas parfaitement couplé
+        self.couplage = 0.9
         pass
 
     def updateMatPerturbation(self, courant, matTemperature, T_ambiant):
@@ -84,6 +87,8 @@ class ActionneurThermique:
         else:
             Q_tot = predict_Q(abs(deltaT), courant)
         
-        print(f"Q du Tec {Q_tot}, T_h {T_h}")
-        self.matPerturbation = self.matElementBinaire * Q_tot / self.nombreElement
+        if courant == 0:
+            Q_tot = 0
+#print(f"Q du Tec {Q_tot}, T_h {T_h}")
+        self.matPerturbation = self.couplage* self.matElementBinaire * Q_tot / self.nombreElement
         

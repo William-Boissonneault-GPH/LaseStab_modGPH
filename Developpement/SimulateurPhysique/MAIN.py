@@ -1,44 +1,55 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import _tkinter as tkr
+import csv
 
 from PlaqueThermique import PlaqueThermique
 from ActuateurThermique import ActionneurThermique
 from thermistance import thermo
 
-PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 60, (0.001,0.001), 25)
+PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 15, (0.001,0.001), 24)
 TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
-thermo1 = thermo(position=(0.03, 0.02), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-thermo2 = thermo(position=(0.07, 0.04), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-thermo3 = thermo(position=(0.10, 0.06), diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-Thermistances = [thermo1,thermo2,thermo3]
+
+# Définir les positions en mètres
+position1 = (0.014, 0.0265)  # 14 mm et 26.5 mm
+position2 = (0.0604, 0.0265)  # 60.4 mm et 26.5 mm
+position3 = (0.1065, 0.0265)  # 106.5 mm et 26.5 mm
+
+# Créer des instances de thermoresistance
+thermo1 = thermo(position=position1, diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo2 = thermo(position=position2, diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo3 = thermo(position=position3, diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+
+# Ajouter à la liste des thermoresistances
+Thermistances = [thermo1, thermo2, thermo3]
+
 
 
 from matplotlib.animation import FuncAnimation
 plt.ion()
 
 ###Echelon de 6A
-echelonCourant = 3
-TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,25)
+echelonCourant = -0.7
+TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,24)
 
-T_amb = 25
+T_amb = 24
 
 #garder le même ratio
-totalTime = 600
-num_frames = 240000
+totalTime = 1600
+num_frames = 580000
 dTime = totalTime/num_frames
 ###Nombre de frame skippé dans l'animation
-animationStep = 400
+animationStep = 1600
 
 video = []
 temperatures = [[],[],[]]
+time = []
 
 for i in range(num_frames):
-
     ###Effectue un échelon d'opération à mi chemin
     if i == num_frames/2:
-        echelonCourant = 6
+        echelonCourant = -0.7
 
     if i % animationStep == 0:
         video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation]))
@@ -48,6 +59,7 @@ for i in range(num_frames):
     
     for j, thermistance in enumerate(Thermistances):
         temperatures[j].append(thermistance.lire_temperature())
+    time.append(i*dTime)
 
 temperatures = np.array(temperatures)
 
@@ -62,6 +74,8 @@ min_value = np.min(video)
 im.set_clim(min_value, max_value)
 
 ax_im.set_title(f"Time = 0 ms")
+
+
 
 # Setup for the history plot
 ax_hist.set_xlim(0, num_frames * dTime)  # X-axis for time
@@ -99,3 +113,20 @@ def update(frame):
 ani = FuncAnimation(fig, update, frames=range(0, int(num_frames/animationStep)), interval=1, blit=False)
 
 plt.show(block=True)
+
+
+
+
+###Write CSV
+# Transpose lists (convert them into rows)
+rows = zip(time, temperatures[0], temperatures[1], temperatures[2])
+
+# Write to CSV
+with open("output.csv", "w", newline="") as file:
+    writer = csv.writer(file)
+    # Write header
+    writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
+    # Write data
+    writer.writerows(rows)
+
+print("CSV file saved successfully!")
