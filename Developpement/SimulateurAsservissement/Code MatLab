@@ -1,0 +1,63 @@
+
+%Amperage = 0.7;
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon1A.csv'); 
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon0.5A.csv'); 
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon0.7A.csv'); 
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon1.5A.csv'); 
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon-1.5A.csv'); 
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon-0.5A.csv'); 
+%data = readmatrix('C:\Users\ALCOT161\Essais_echelons\echelon-0.7A.csv'); 
+
+%switch Amperage
+  %  Case 
+
+% Extract columns
+time = data(:, 1);           % First column is time
+temp = data(:, 2:end);       % Remaining columns are temperature signals
+
+
+myStruct.time = time;                        % Nx1 vector
+myStruct.signals.values = temp;             % Nx3 matrix
+myStruct.signals.dimension = 3;
+myStruct.signals.label = {'Temp1','Temp2','Temp3'};  % optional labels
+
+figure;
+plot(myStruct.time, myStruct.signals.values, 'LineWidth', 1.5); 
+legend(myStruct.signals.label, 'Location', 'best');
+xlabel('Time (s)');
+ylabel('Temperature (°C)');
+title('Temperature vs. Time');
+grid on;
+
+% 2. Separate time (1st column) and temperature data (2nd+ columns)
+time = data(:, 1);
+tempAll = data(:, 2:end);  % Suppose there are M columns of temperature
+
+% 3. Compute max, min for each column
+[maxVals, ~] = max(tempAll);  % 1×M
+[minVals, ~] = min(tempAll);  % 1×M
+
+% 4. Compute the 63%-range target value for each column
+rangeVals = (maxVals - minVals) * 0.63;    % 1×M
+%targetVals = minVals + rangeVals;         % 1×M
+% 4. Compute the 63%-range target for a DECREASING signal
+%    (maxVal - 0.63*(maxVal - minVal))
+targetVals = maxVals - 0.63 * (maxVals - minVals);
+
+% 5. For each column, find earliest time <= that target
+timeAt63 = nan(1, size(tempAll, 2));
+for i = 1:size(tempAll, 2)
+    idxCross = find(tempAll(:, i) <= targetVals(i), 1, 'first');
+    if ~isempty(idxCross)
+        timeAt63(i) = time(idxCross);
+    else
+        timeAt63(i) = NaN;  % If it never drops that far
+    end
+end
+
+% 6. Display results in the Command Window only
+disp('Earliest times each column crosses 63% of the drop from max to min:');
+for i = 1:size(tempAll, 2)
+    fprintf('Column %d -> 63%% Target = %.3f, Time = %.3f\n', ...
+        i, targetVals(i), timeAt63(i));
+end
