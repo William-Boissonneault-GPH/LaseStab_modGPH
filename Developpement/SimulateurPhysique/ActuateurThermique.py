@@ -74,7 +74,7 @@ class ActionneurThermique:
         self.matElementBinaire[Indices[0]:Indices[1], Indices[2]:Indices[3]] = 1
 
         ###le Tec n'est pas parfaitement couplé
-        self.couplage = 0.9
+        self.couplage = 1
         pass
 
     def updateMatPerturbation(self, courant, matTemperature, T_ambiant):

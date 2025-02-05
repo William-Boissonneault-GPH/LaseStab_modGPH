@@ -27,6 +27,12 @@ class PlaqueThermique():
                     self.k = 1
                     self.rho = 2
                     self.cp = 3
+                case "Ajustement":
+                    self.k = 150
+                    self.rho = 2700
+                    self.cp = 900
+
+                
         self.alpha = self.k / (self.rho * self.cp)
         self.coefConv = coefConv
 

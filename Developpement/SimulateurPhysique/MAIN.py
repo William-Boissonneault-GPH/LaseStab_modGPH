@@ -10,16 +10,15 @@ from thermistance import thermo
 PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Aluminium", 15, (0.001,0.001), 24)
 TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
-
 # Définir les positions en mètres
-position1 = (0.014, 0.0265)  # 14 mm et 26.5 mm
-position2 = (0.0604, 0.0265)  # 60.4 mm et 26.5 mm
-position3 = (0.1065, 0.0265)  # 106.5 mm et 26.5 mm
+position1 = (0.11875 - 0.014, 0.031)  # 14 mm et 26.5 mm
+position2 = (0.11875 - 0.0604, 0.031)  # 60.4 mm et 26.5 mm
+position3 = (0.11875 - 0.1065, 0.031)  # 106.5 mm et 26.5 mm
 
 # Créer des instances de thermoresistance
-thermo1 = thermo(position=position1, diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-thermo2 = thermo(position=position2, diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
-thermo3 = thermo(position=position3, diamètre=0.005, épaisseur=0.001, plaque=PlaqueA)
+thermo1 = thermo(position=position1, diamètre=0.008, épaisseur=0.001, plaque=PlaqueA)
+thermo2 = thermo(position=position2, diamètre=0.008, épaisseur=0.001, plaque=PlaqueA)
+thermo3 = thermo(position=position3, diamètre=0.008, épaisseur=0.001, plaque=PlaqueA)
 
 # Ajouter à la liste des thermoresistances
 Thermistances = [thermo1, thermo2, thermo3]
