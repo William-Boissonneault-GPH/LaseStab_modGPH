@@ -1,0 +1,124 @@
+/**********************************************************
+ * Arduino Thermistor Reading and PWM Output Example
+ *
+ * Reads temperature from a 10 kΩ NTC thermistor and
+ * outputs a corresponding PWM duty cycle on pin D9.
+ *
+ * By default, this code:
+ *  - Reads an analog value from A0.
+ *  - Converts it to temperature in Celsius using the
+ *    Beta (B-parameter) equation.
+ *  - Maps that temperature to a PWM "voltage" level
+ *    (0-5 V approximated by 0-255 PWM).
+ **********************************************************/
+
+// ============ USER CONFIGURATIONS ============
+
+// Pin assignments
+const int THERMISTOR_PIN = A0;  // Analog pin for thermistor
+const int PWM_OUTPUT_PIN = 9;   // PWM pin for analog-like output
+
+// Thermistor parameters
+const float SERIES_RESISTOR = 10000.0;     // 10kΩ resistor in series
+const float THERMISTOR_NOMINAL = 10000.0;  // Resistance at 25°C (nominal)
+const float TEMPERATURE_NOMINAL = 25.0;    // Nominal temperature
+const float B_COEFFICIENT = 3950.0;        // Beta coefficient of the thermistor
+const float ADC_MAX = 1023.0;             // 10-bit ADC on Arduino Uno
+const float V_SUPPLY = 5.0;               // Supply voltage
+
+// Temperature range for PWM mapping (customize for your needs)
+const float TEMP_MIN = 0.0;   // Minimum temperature to map
+const float TEMP_MAX = 50.0;  // Maximum temperature to map
+
+// ============ SETUP ============
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(PWM_OUTPUT_PIN, OUTPUT);
+}
+
+// ============ MAIN LOOP ============
+
+void loop() {
+  // 1. Read the analog value from the thermistor voltage divider
+  int adcValue = analogRead(THERMISTOR_PIN);
+
+  // 2. Convert the ADC value to temperature (in Celsius)
+  float temperatureC = getTemperatureC(adcValue);
+
+  // 3. Map the temperature to a PWM duty cycle
+  //    For example, 0°C -> 0% duty, 50°C -> 100% duty
+  //    You can customize the mapping to your needs.
+  int pwmValue = mapTemperatureToPWM(temperatureC);
+
+  // 4. Output the PWM signal
+  analogWrite(PWM_OUTPUT_PIN, pwmValue);
+
+  // 5. Print some debug information (optional)
+  Serial.print("ADC: ");
+  Serial.print(adcValue);
+  Serial.print("  Temp (C): ");
+  Serial.print(temperatureC);
+  Serial.print("  PWM: ");
+  Serial.println(pwmValue);
+
+  delay(1000);  // Delay for readability (1 second)
+}
+
+// ============ HELPER FUNCTIONS ============
+
+/**
+ * getTemperatureC()
+ * -----------------
+ * Converts an ADC reading of a thermistor voltage divider
+ * into temperature (Celsius) using the Beta parameter
+ * equation (simplified Steinhart-Hart).
+ */
+float getTemperatureC(int adcValue) {
+  // Convert ADC reading to voltage
+  float vThermistor = (adcValue * V_SUPPLY) / ADC_MAX;
+
+  // Convert voltage to resistance of thermistor
+  // The thermistor is on top (connected to 5V), series resistor on bottom to GND:
+  //    Vout = 5V * (R_series / (R_series + R_thermistor))
+  // => R_thermistor = (R_series * (5V - Vout)) / Vout
+  float rThermistor = (SERIES_RESISTOR * (V_SUPPLY - vThermistor)) / vThermistor;
+
+  // Using the Beta formula:
+  //    (1/T) = (1/To) + (1/B) * ln(R / Ro)
+  // Where:
+  //    T  = Temperature in Kelvin
+  //    To = 25°C in Kelvin = 298.15K
+  //    R  = Current resistance
+  //    Ro = Nominal resistance at 25°C
+  //    B  = Beta coefficient
+  float steinhart;
+  steinhart = rThermistor / THERMISTOR_NOMINAL;           // R/Ro
+  steinhart = log(steinhart);                             // ln(R/Ro)
+  steinhart /= B_COEFFICIENT;                              // (1/B) * ln(R/Ro)
+  steinhart += 1.0 / (TEMPERATURE_NOMINAL + 273.15);       // + (1/To)
+  steinhart = 1.0 / steinhart;                             // Invert to get T (Kelvin)
+  steinhart -= 273.15;                                     // Convert to Celsius
+
+  return steinhart;
+}
+
+/**
+ * mapTemperatureToPWM()
+ * ----------------------
+ * Maps a temperature in Celsius to a PWM duty cycle (0-255).
+ * Adjust the TEMP_MIN and TEMP_MAX for your application.
+ */
+int mapTemperatureToPWM(float temperatureC) {
+  // Ensure the temperature is within the configured bounds
+  if (temperatureC < TEMP_MIN) temperatureC = TEMP_MIN;
+  if (temperatureC > TEMP_MAX) temperatureC = TEMP_MAX;
+
+  // Map the temperature range [TEMP_MIN, TEMP_MAX] to [0, 255]
+  float range = TEMP_MAX - TEMP_MIN;
+  float normalized = (temperatureC - TEMP_MIN) / range;
+  int pwmValue = (int)(normalized * 255.0);
+
+  return pwmValue;
+}
+
