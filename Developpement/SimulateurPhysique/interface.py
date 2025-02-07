@@ -1,55 +1,74 @@
 import customtkinter as ctk
+from MAIN import lancer_simulation  
+import customtkinter as ctk
+from tkinter import messagebox
+import threading  # Pour lancer la simulation sans bloquer l'interface
 
-# Seulement un essai, les paramètres ont pas rapport et ce n'est pas encore lié avec la simul
 ctk.set_appearance_mode("dark")  # Mode sombre
 ctk.set_default_color_theme("blue")  # Thème bleu
 
-class SimulationUI(ctk.CTk):
+class SimulationInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Paramètres de Simulation")
-        self.geometry("400x350")
+        self.title("Simulation Thermique")
+        self.geometry("600x500")
 
-        # Température initiale
-        self.create_slider("Température initiale (°C):", 0, 100, 25, "temp_var")
+        ctk.set_appearance_mode("dark")  
+        ctk.set_default_color_theme("blue")
 
-        # Conductivité thermique
-        self.create_slider("Conductivité thermique (W/mK):", 50, 400, 200, "cond_var")
+        # Stocker les variables
+        self.variables = {
+            "pos_x_thermo1": ctk.StringVar(value="0.10475"),
+            "pos_y_thermo1": ctk.StringVar(value="0.031"),
+            "pos_x_thermo2": ctk.StringVar(value="0.05835"),
+            "pos_y_thermo2": ctk.StringVar(value="0.031"),
+            "pos_x_thermo3": ctk.StringVar(value="0.01225"),
+            "pos_y_thermo3": ctk.StringVar(value="0.031"),
+            "coefficient_convection": ctk.StringVar(value="15"),
+            "capacite_thermique": ctk.StringVar(value="900"),
+            "conductivite_thermique": ctk.StringVar(value="237"),
+            "dim_x_plaque": ctk.StringVar(value="0.11875"),
+            "dim_y_plaque": ctk.StringVar(value="0.062"),
+            "dim_z_plaque": ctk.StringVar(value="0.002"),
+            "temperature_initiale": ctk.StringVar(value="24")
+        }
 
-        # Épaisseur de la plaque
-        self.create_slider("Épaisseur de la plaque (mm):", 1, 10, 5, "epaisseur_var")
+        self.create_widgets()
 
-        # Bouton de lancement
-        self.start_button = ctk.CTkButton(self, text="Lancer la simulation", command=self.lancer_simulation)
-        self.start_button.pack(pady=20)
+    def create_widgets(self):
+        """Crée et place les widgets dans l'interface"""
+        row = 0
+        ctk.CTkLabel(self, text="Paramètres de la Simulation", font=("Arial", 16, "bold")).grid(row=row, column=0, columnspan=2, pady=10)
 
-    def create_slider(self, label_text, min_val, max_val, default_val, var_name):
-        """Crée un slider avec un champ d'entrée pour voir et ajuster précisément la valeur"""
-        frame = ctk.CTkFrame(self)
-        frame.pack(pady=5, fill="x", padx=10)
+        # Création des entrées pour chaque paramètre
+        for key, var in self.variables.items():
+            row += 1
+            label = key.replace("_", " ").capitalize()
+            ctk.CTkLabel(self, text=label).grid(row=row, column=0, padx=10, pady=5, sticky="w")
+            ctk.CTkEntry(self, textvariable=var).grid(row=row, column=1, padx=10, pady=5)
 
-        label = ctk.CTkLabel(frame, text=label_text)
-        label.pack(side="left", padx=10)
+        # Bouton pour lancer la simulation
+        row += 1
+        self.btn_lancer = ctk.CTkButton(self, text="Lancer Simulation", command=self.lancer_simulation_interface)
+        self.btn_lancer.grid(row=row, column=0, columnspan=2, pady=20)
 
-        var = ctk.DoubleVar(value=default_val)
-        setattr(self, var_name, var)  # Stocke la variable dans l'objet
+    def lancer_simulation_interface(self):
+        """Récupère les paramètres et lance la simulation dans un thread séparé"""
+        try:
+            # Convertir les entrées en float
+            params = {key: float(var.get()) for key, var in self.variables.items()}
 
-        entry = ctk.CTkEntry(frame, textvariable=var, width=50)
-        entry.pack(side="right", padx=10)
+            # Affichage des paramètres récupérés 
+            print("Paramètres de simulation récupérés :", params)
 
-        slider = ctk.CTkSlider(frame, from_=min_val, to=max_val, variable=var, command=lambda v: var.set(round(float(v), 2)))
-        slider.pack(side="right", expand=True, fill="x", padx=10)
+            # Lancer la simulation dans un thread pour pas bloquer l'interface
+            threading.Thread(target=lancer_simulation, daemon=True).start()
 
-    def lancer_simulation(self):
-        """Récupère les valeurs et affiche la configuration choisie"""
-        temp = self.temp_var.get()
-        conductivite = self.cond_var.get()
-        epaisseur = self.epaisseur_var.get()
-        print(f"Simulation lancée avec Temp={temp}°C, Conductivité={conductivite} W/mK, Épaisseur={epaisseur} mm")
+        except ValueError:
+            messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
 
-# Lancer l'interface
 if __name__ == "__main__":
-    app = SimulationUI()
+    app = SimulationInterface()
     app.mainloop()
 
