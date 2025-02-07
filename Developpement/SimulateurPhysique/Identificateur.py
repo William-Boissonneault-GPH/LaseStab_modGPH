@@ -9,7 +9,7 @@ from thermistance import thermo
 
 T_amb = 24.3
 
-PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Ajustement", 14.5, (0.001,0.001), T_amb)
+PlaqueA = PlaqueThermique((0.11875,0.062,0.002), "Ajustement", 10, (0.001,0.001), T_amb)
 TecA = ActionneurThermique((0.096, 0.031), (0.015,0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
 # Définir les positions en mètres
@@ -34,7 +34,7 @@ echelonCourant = 0
 TecA.updateMatPerturbation(echelonCourant,PlaqueA.matTemperature,24)
 #garder le même ratio
 totalTime = 800
-num_frames = int(290000 / 1)
+num_frames = int(340000 / 1)
 dTime = totalTime/num_frames
 ###Nombre de frame skippé dans l'animation
 animationStep = 1600
@@ -48,15 +48,20 @@ for i in range(num_frames):
     if i * dTime >= 40:
         echelonCourant = 1
 
+    for j, thermistance in enumerate(Thermistances):
+        temp = thermistance.lire_temperature()
+        temperatures[j].append(temp)
+    time.append(i*dTime)
+
     if i % animationStep == 0:
         video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation]))
         TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_amb)
+        print((temperatures[2][-1]-T_amb)/(temperatures[0][-1] - T_amb))
     else:
         PlaqueA.propagationDunPasDeTemps(dTime, T_amb, [TecA.matPerturbation])
     
-    for j, thermistance in enumerate(Thermistances):
-        temperatures[j].append(thermistance.lire_temperature())
-    time.append(i*dTime)
+    
+    
 
 temperatures = np.array(temperatures)
 
@@ -105,6 +110,11 @@ with open("donnéesProto/data_thermistances-1A.csv", mode="r", encoding="ISO-885
         T2.append(float(row[2]))
         T3.append(float(row[3]))
         T4.append(float(row[4]))
+
+
+T1 = np.array(T1)
+T2 = np.array(T2)
+T3 = np.array(T3)
 
 line_hist4, = ax_hist.plot(time, T1, color='red', label="Thermo 1")
 line_hist5, = ax_hist.plot(time, T2, color='blue', label="Thermo 2")

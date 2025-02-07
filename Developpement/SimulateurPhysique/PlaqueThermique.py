@@ -29,7 +29,7 @@ class PlaqueThermique():
                     self.cp = 3
                 case "Ajustement":
                     self.k = 150
-                    self.rho = 2700
+                    self.rho = 2900
                     self.cp = 900
 
                 
