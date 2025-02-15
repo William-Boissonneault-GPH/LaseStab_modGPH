@@ -32,6 +32,7 @@ class PlaqueThermique():
                     self.rho = 2900
                     self.cp = 900
 
+        print(self.k, self.rho, self.cp)
                 
         self.alpha = self.k / (self.rho * self.cp)
         self.coefConv = coefConv

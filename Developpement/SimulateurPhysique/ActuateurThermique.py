@@ -136,7 +136,7 @@ class ActionneurThermique:
         deltaT = T_h - T_ambiant
 
         if courant < 0:
-            Q_tot = -1 * predict_Q(abs(deltaT), abs(courant), T_ambiant + abs(deltaT))
+            Q_tot = -0.58 * predict_Q(abs(deltaT), abs(courant), T_ambiant)
         else:
             Q_tot = predict_Q(abs(deltaT), courant, T_ambiant + abs(deltaT))
         
@@ -144,4 +144,51 @@ class ActionneurThermique:
             Q_tot = 0
 #print(f"Q du Tec {Q_tot}, T_h {T_h}")
         self.matPerturbation = self.couplage* self.matElementBinaire * Q_tot / self.nombreElement
+        
+
+
+
+
+class ActionneurThermiqueSIMPLE:
+    
+    def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque):
+        self.matElementBinaire = np.zeros_like(matPlaque)
+        self.matPerturbation = np.zeros_like(matPlaque)
+
+        ###(en x, en y) [m]
+        self.dimensions = dimensions
+        self.aireEnM2 = dimensions[0] * dimensions[1]
+
+        ###(x,y) [m]
+        self.postionCentre = position
+
+        self.dimensionElementFiniePlaque = dimensionElementFiniePlaque
+
+        ### Trouve les indices de matrice
+        indiceCentre = (round(self.postionCentre[0] / self.dimensionElementFiniePlaque["dX"]), round(self.postionCentre[1] / self.dimensionElementFiniePlaque["dY"]))
+        largeurIndice = (round(dimensions[0] / self.dimensionElementFiniePlaque["dX"]), round(dimensions[1] / self.dimensionElementFiniePlaque["dY"]))
+        Indices = np.array((int(indiceCentre[1] - largeurIndice[1]/2), int(indiceCentre[1] + largeurIndice[1]/2), int(indiceCentre[0] - largeurIndice[0]/2), int(indiceCentre[0] + largeurIndice[0]/2)))
+
+        if np.min(Indices) < 0:
+            raise ValueError("L'actionneur dépasse de la plaque")
+        
+        self.nombreElement = (Indices[1] - Indices[0]) * (Indices[3] - Indices[2])
+        self.aireEnM2_element = self.aireEnM2 / self.nombreElement
+
+        self.matElementBinaire[Indices[0]:Indices[1], Indices[2]:Indices[3]] = 1
+
+        ###le Tec n'est pas parfaitement couplé
+        self.couplage = 1
+        pass
+
+    def updateMatPerturbation(self, Puissance):
+        ###Trouver température côté chaud TEC
+        #print(f"Q du Tec {Q_tot}, T_h {T_h}")
+        self.matPerturbation = self.matElementBinaire * Puissance / self.nombreElement
+
+    def updateMatPerturbationCourrant(self, courrant):
+        ###Trouver température côté chaud TEC
+        #print(f"Q du Tec {Q_tot}, T_h {T_h}")
+        Puissance = 0.1493 * courrant**2 + 1.3291 * courrant
+        self.matPerturbation = self.matElementBinaire * Puissance / self.nombreElement
         
