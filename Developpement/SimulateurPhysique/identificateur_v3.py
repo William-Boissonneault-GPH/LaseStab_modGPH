@@ -72,6 +72,7 @@ dT_dt_fermetureTEC = []
 deltaT_conv_fermeture = []
 i_fermeture_TEC = []
 
+fig, ax = plt.subplots(2, 1, figsize=(6, 4), sharex=True)
 
 for i, essai in enumerate(EssaisProto):
         # Fit a smoothing spline
@@ -83,17 +84,16 @@ for i, essai in enumerate(EssaisProto):
     # Compute the first derivative
     dy_dx = spline.derivative()(x)
     # Plot results
-    fig, ax = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
 
     ax[0].plot(x, y, 'o', markersize=3, alpha=0.5, label="Noisy Data")
     ax[0].plot(x, y_smooth, linewidth=2, label="Smoothed Curve")
-    ax[0].set_ylabel("y")
-    ax[0].legend()
+    ax[0].set_ylabel("Temperature [C]")
+    #ax[0].legend()
 
     ax[1].plot(x, dy_dx, 'r', linewidth=2, label="Derivative")
-    ax[1].set_xlabel("x")
-    ax[1].set_ylabel("dy/dx")
-    ax[1].legend()
+    ax[1].set_xlabel("temps [sec]")
+    ax[1].set_ylabel("dT/dt [K/sec]")
+    #ax[1].legend()
 
     i_fermeture = 0
     if Amperage[i] > 0:
@@ -114,7 +114,7 @@ for i, essai in enumerate(EssaisProto):
 for i, essai in enumerate(EssaisProto):
         # Fit a smoothing spline
     x = essai["time"]
-    y = essai["T2"]
+    y = essai["T1"]
     spline = UnivariateSpline(x, y, s=3)  # s controls the smoothness
     y_smooth = spline(x)
 
@@ -123,13 +123,13 @@ for i, essai in enumerate(EssaisProto):
 
     ax[0].plot(x, y, 'o', markersize=3, alpha=0.5, label="Noisy Data")
     ax[0].plot(x, y_smooth, linewidth=2, label="Smoothed Curve")
-    ax[0].set_ylabel("y")
-    ax[0].legend()
+    ax[0].set_ylabel("Température [C]")
+    #ax[0].legend()
 
     ax[1].plot(x, dy_dx, 'r', linewidth=2, label="Derivative")
-    ax[1].set_xlabel("x")
-    ax[1].set_ylabel("dy/dx")
-    ax[1].legend()
+    ax[1].set_xlabel("temps [sec]")
+    ax[1].set_ylabel("dT/dt [K/sec]")
+    #ax[1].legend()
 
     i_fermeture = 0
     if Amperage[i] > 0:
@@ -149,15 +149,17 @@ for i, essai in enumerate(EssaisProto):
     #plt.show()
 plt.show()
 
-plt.scatter(deltaT_conv_fermeture, dT_dt_fermetureTEC, label="Data", color='green')
+plt.figure(figsize=(6, 3))
+plt.scatter(deltaT_conv_fermeture, dT_dt_fermetureTEC, label="Données", color='green')
 
-slope, intercept, _, _, _ = linregress(deltaT_conv_fermeture, dT_dt_fermetureTEC)
+slope, intercept, _, _, std_err_slope = linregress(deltaT_conv_fermeture, dT_dt_fermetureTEC)
+incert_slope = std_err_slope *2
 x_vals = np.linspace(min(deltaT_conv_fermeture), max(deltaT_conv_fermeture), 100)
 y_vals = slope * x_vals + intercept
-plt.plot(x_vals, y_vals, color='red', label=f"Fit: y = {slope:.3f}x + {intercept:.3f}")
+plt.plot(x_vals, y_vals, color='red', label=f"Régression: y = ({slope:.4f}+-{incert_slope:.4f})x + {intercept:.4f}")
 
-plt.xlabel("Différence T fermeture - T amb")
-plt.ylabel("dT/dt à la fermeture")
+plt.xlabel("(Tamb - T) [C]")
+plt.ylabel("dT/dt à la fermeture [K/sec]")
 plt.grid(True, linestyle='--', alpha=0.6)
 plt.legend()
 plt.show()
