@@ -107,6 +107,11 @@ else:
 
 y_est = optimal_a * y31 + optimal_b * y32  # Compute estimated response
 
+y_sim_interpolated = np.interp(t_csv, t, y_est)
+mse = np.mean((y_sim_interpolated - y3_csv)**2)
+rmse = np.sqrt(mse)
+print(f"rmse : {rmse}")
+
 
 plt.figure(figsize=(7,4))
 plt.rcParams.update({"font.size": 8})
@@ -127,6 +132,8 @@ plt.xlabel("temps [sec]")
 plt.ylabel("ΔT [°C]")
 plt.grid()
 plt.legend()
+
+plt.savefig("estimateurDeTemperature.pdf")
 plt.show()
 
 
