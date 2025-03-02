@@ -1,22 +1,16 @@
-/**********************************************************
- * Arduino Thermistor Reading and PWM Output Example
- *
- * Reads temperature from a 10 kΩ NTC thermistor and
- * outputs a corresponding PWM duty cycle on pin D9.
- *
- * By default, this code:
- *  - Reads an analog value from A0.
- *  - Converts it to temperature in Celsius using the
- *    Beta (B-parameter) equation.
- *  - Maps that temperature to a PWM "voltage" level
- *    (0-5 V approximated by 0-255 PWM).
- **********************************************************/
-
-// ============ USER CONFIGURATIONS ============
+#include <Arduino.h>
+#include <avr/interrupt.h> // Needed for ISR definitions
+#include <math.h>          // For the log() function
 
 // Pin assignments
-const int THERMISTOR_PIN = A0;  // Analog pin for thermistor
+const int THERMISTOR_PIN1 = A0;  // Analog pin for thermistor1
+const int THERMISTOR_PIN2 = A1;  // Analog pin for thermistor2
 const int PWM_OUTPUT_PIN = 9;   // PWM pin for analog-like output
+
+volatile float T1 = 0.0;
+volatile float T2 = 0.0;
+volatile float T3 = 0.0;
+volatile int pwmValue;
 
 // Thermistor parameters
 const float SERIES_RESISTOR = 10000.0;     // 10kΩ resistor in series
@@ -27,45 +21,58 @@ const float ADC_MAX = 1023.0;             // 10-bit ADC on Arduino Uno
 const float V_SUPPLY = 5.0;               // Supply voltage
 
 // Temperature range for PWM mapping (customize for your needs)
-const float TEMP_MIN = 0.0;   // Minimum temperature to map
-const float TEMP_MAX = 50.0;  // Maximum temperature to map
+const float TEMP_MIN = 15.0;   // Minimum temperature to map
+const float TEMP_MAX = 35.0;  // Maximum temperature to map
 
 // ============ SETUP ============
 
 void setup() {
   Serial.begin(9600);
   pinMode(PWM_OUTPUT_PIN, OUTPUT);
+   noInterrupts();          // Disable interrupts while we configure
+  TCCR1A = 0;              // Clear Timer1 control registers
+  TCCR1B = 0;
+  TCNT1  = 0;              // Initialize counter to 0
+  OCR1A  = 15624;          // Compare value for 1s (16MHz / 1024 / 1Hz - 1)
+  TCCR1B |= (1 << WGM12);  // CTC mode: reset counter on compare match
+  TCCR1B |= (1 << CS12) | (1 << CS10); // Prescaler 1024
+  TIMSK1 |= (1 << OCIE1A); // Enable compare-match interrupt
+  interrupts();            // Enable global interrupts
 }
 
 // ============ MAIN LOOP ============
 
 void loop() {
-  // 1. Read the analog value from the thermistor voltage divider
-  int adcValue = analogRead(THERMISTOR_PIN);
-
-  // 2. Convert the ADC value to temperature (in Celsius)
-  float temperatureC = getTemperatureC(adcValue);
-
-  // 3. Map the temperature to a PWM duty cycle
-  //    For example, 0°C -> 0% duty, 50°C -> 100% duty
-  //    You can customize the mapping to your needs.
-  int pwmValue = mapTemperatureToPWM(temperatureC);
-
-  // 4. Output the PWM signal
-  analogWrite(PWM_OUTPUT_PIN, pwmValue);
-
-  // 5. Print some debug information (optional)
-  Serial.print("ADC: ");
-  Serial.print(adcValue);
+  
+  Serial.print("ADC1: ");
+  Serial.print(adcValue1);
   Serial.print("  Temp (C): ");
-  Serial.print(temperatureC);
+  Serial.print(T3);
   Serial.print("  PWM: ");
   Serial.println(pwmValue);
 
   delay(1000);  // Delay for readability (1 second)
 }
 
-// ============ HELPER FUNCTIONS ============
+//Interruption
+ISR(TIMER1_COMPA_vect) {
+  // 1. Read T1 and T2 from their respective ADC pins
+  int adcValue1 = analogRead(THERMISTOR_PIN1);
+  int adcValue2 = analogRead(THERMISTOR_PIN2);
+
+  // 2. Convert ADC to temperatures
+  T1 = getTemperatureC(adcValue1);
+  T2 = getTemperatureC(adcValue2);
+
+  // 3. Estimate T3 (example: T1 and T2 average)
+  T3 = getEstimationCT3(T1, T2);
+
+  // 4. Convert the estimated T3 to a PWM duty cycle
+  pwmValue = mapTemperatureToPWM(T3);
+
+  // 5. Write PWM
+  analogWrite(PWM_OUTPUT_PIN, pwmValue);
+}
 
 /**
  * getTemperatureC()
@@ -102,6 +109,13 @@ float getTemperatureC(int adcValue) {
 
   return steinhart;
 }
+
+float getEstimationCT3(float TempT1, float TempT2) [
+  // Estimate T3 using T1 and T2
+  //TODO discrétisation des fonctions de transfert
+
+
+]
 
 /**
  * mapTemperatureToPWM()
