@@ -63,7 +63,8 @@ class SimulationInterface(ctk.CTk):
             print("Paramètres de simulation récupérés :", params)
 
             # Lancer la simulation dans un thread pour pas bloquer l'interface
-            threading.Thread(target=lancer_simulation, daemon=True).start()
+            threading.Thread(target=lancer_simulation, args=(params,), daemon=True).start()
+
 
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
