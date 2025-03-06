@@ -99,7 +99,7 @@ def lancer_simulation(params):
 
     ani = FuncAnimation(fig, update, frames=range(0, int(num_frames / animationStep)), interval=1, blit=False)
 
-    plt.show()
+    plt.show(block=True)
 
     ### Sauvegarde des données en CSV
     rows = zip(time, temperatures[0], temperatures[1], temperatures[2])
@@ -109,3 +109,4 @@ def lancer_simulation(params):
         writer.writerows(rows)
 
     print("CSV file saved successfully!")
+
