@@ -5,151 +5,156 @@
 // Pin assignments
 const int THERMISTOR_PIN1 = A0;  // Analog pin for thermistor1
 const int THERMISTOR_PIN2 = A1;  // Analog pin for thermistor2
-const int PWM_OUTPUT_PIN = 9;   // PWM pin for analog-like output
+const int PWM_OUTPUT_PIN   = 9;  // PWM pin for analog-like output
 
+// Global temperature variables (updated in the ISR)
 volatile float T1 = 0.0;
 volatile float T2 = 0.0;
 volatile float T3 = 0.0;
-volatile int pwmValue;
+
+// PID regulator variables (for discrete control)
+const float T_goal = 25.0;   // User-set goal temperature (°C)
+volatile float error = 0.0;
+volatile float previous_error = 0.0;
+volatile float integral = 0.0;
+const float dt = 0.01;       // Sampling period (0.01 s)
+
+// PID Gains (tune these as needed)
+const float Kp = 20.0;
+const float Ki = 1.0;
+const float Kd = 0.5;
+
+// Output PWM value
+volatile int pwmValue = 0;
 
 // Thermistor parameters
-const float SERIES_RESISTOR = 10000.0;     // 10kΩ resistor in series
-const float THERMISTOR_NOMINAL = 10000.0;  // Resistance at 25°C (nominal)
-const float TEMPERATURE_NOMINAL = 25.0;    // Nominal temperature
-const float B_COEFFICIENT = 3950.0;        // Beta coefficient of the thermistor
-const float ADC_MAX = 1023.0;             // 10-bit ADC on Arduino Uno
-const float V_SUPPLY = 5.0;               // Supply voltage
+const float SERIES_RESISTOR   = 10000.0;    // 10kΩ resistor in series
+const float THERMISTOR_NOMINAL = 10000.0;    // Resistance at 25°C (nominal)
+const float TEMPERATURE_NOMINAL = 25.0;      // Nominal temperature (°C)
+const float B_COEFFICIENT     = 3950.0;       // Beta coefficient of the thermistor
+const float ADC_MAX           = 1023.0;       // 10-bit ADC on Arduino Uno
+const float V_SUPPLY          = 5.0;          // Supply voltage (V)
 
-// Temperature range for PWM mapping (customize for your needs)
-const float TEMP_MIN = 15.0;   // Minimum temperature to map
-const float TEMP_MAX = 35.0;  // Maximum temperature to map
+// Temperature range for PWM mapping (if needed; here we map the PID output directly)
+const int PWM_MIN = 0;
+const int PWM_MAX = 255;
 
 // ============ SETUP ============
 
 void setup() {
- Serial.begin(9600);
+  Serial.begin(9600);
   pinMode(PWM_OUTPUT_PIN, OUTPUT);
   
-  noInterrupts();          // Disable interrupts while we configure
+  noInterrupts();          // Disable interrupts while configuring Timer1
   TCCR1A = 0;              // Clear Timer1 control registers
   TCCR1B = 0;
   TCNT1  = 0;              // Initialize counter to 0
   
-  // Set OCR1A to trigger an interrupt every 0.01s
-  // For 16MHz clock with 1024 prescaler: 16,000,000 / 1024 = 15625 counts per second.
-  // For 0.01 s, we need 15625 * 0.01 = 156.25, so use 156 (or 157) as compare value.
+  // Configure Timer1 for a 0.01 s interrupt:
+  // For a 16 MHz clock with 1024 prescaler:
+  //   Counts per second = 16,000,000 / 1024 ≈ 15625.
+  // For 0.01 s period, compare value = 15625 * 0.01 ≈ 156.25, so use OCR1A = 156.
   OCR1A  = 156;          
-  
-  TCCR1B |= (1 << WGM12);  // CTC mode: reset counter on compare match
-  TCCR1B |= (1 << CS12) | (1 << CS10); // Prescaler 1024
-  TIMSK1 |= (1 << OCIE1A); // Enable compare-match interrupt
-  interrupts();            // Enable global interrupts
+  TCCR1B |= (1 << WGM12);              // CTC mode: Clear Timer on Compare Match
+  TCCR1B |= (1 << CS12) | (1 << CS10);   // Prescaler 1024
+  TIMSK1 |= (1 << OCIE1A);               // Enable compare-match interrupt
+  interrupts();                        // Enable global interrupts
 }
 
 // ============ MAIN LOOP ============
 
 void loop() {
-  
-  Serial.print("ADC1: ");
-  Serial.print(adcValue1);
-  Serial.print("  Temp (C): ");
+  // For demonstration, print T3 and the current PWM value every second.
+  Serial.print("Estimated Temp (T3) [°C]: ");
   Serial.print(T3);
-  Serial.print("  PWM: ");
+  Serial.print("    PWM: ");
   Serial.println(pwmValue);
 
-  delay(1000);  // Delay for readability (1 second)
+  delay(1000);  // 1 second delay for readability
 }
 
-//Interruption
+// ============ INTERRUPT SERVICE ROUTINE ============
+
 ISR(TIMER1_COMPA_vect) {
-  // 1. Read T1 and T2 from their respective ADC pins
+  // 1. Read ADC values for the two thermistors
   int adcValue1 = analogRead(THERMISTOR_PIN1);
   int adcValue2 = analogRead(THERMISTOR_PIN2);
 
-  // 2. Convert ADC to temperatures
+  // 2. Convert ADC readings to temperatures (in °C)
   T1 = getTemperatureC(adcValue1);
   T2 = getTemperatureC(adcValue2);
 
-  // 3. Estimate T3 (example: T1 and T2 average)
+  // 3. Estimate T3 using the discrete filter (low-pass on the average of T1 and T2)
   T3 = getEstimationCT3(T1, T2);
 
-  // 4. Convert the estimated T3 to a PWM duty cycle
-  pwmValue = mapTemperatureToPWM(T3);
+  // 4. Compute the error between the goal temperature and the estimated temperature
+  error = T_goal - T3;
 
-  // 5. Write PWM
+  // 5. Update the PID controller (discrete-time)
+  integral += error * dt;
+  float derivative = (error - previous_error) / dt;
+  float control_signal = Kp * error + Ki * integral + Kd * derivative;
+  previous_error = error;
+
+  // 6. Map the control signal to PWM range.
+  //    Here we assume control_signal is already scaled. Otherwise, you might want to scale it.
+  //    For example, you can constrain the output and then map it:
+  control_signal = constrain(control_signal, PWM_MIN, PWM_MAX);
+  pwmValue = (int)control_signal;
+
+  // 7. Write the PWM value to the output pin
   analogWrite(PWM_OUTPUT_PIN, pwmValue);
 }
 
 /**
  * getTemperatureC()
  * -----------------
- * Converts an ADC reading of a thermistor voltage divider
- * into temperature (Celsius) using the Beta parameter
- * equation (simplified Steinhart-Hart).
+ * Converts an ADC reading from a thermistor voltage divider into temperature (°C)
+ * using the Beta parameter equation (a simplified form of Steinhart-Hart).
  */
 float getTemperatureC(int adcValue) {
   // Convert ADC reading to voltage
   float vThermistor = (adcValue * V_SUPPLY) / ADC_MAX;
 
-  // Convert voltage to resistance of thermistor
-  // The thermistor is on top (connected to 5V), series resistor on bottom to GND:
-  //    Vout = 5V * (R_series / (R_series + R_thermistor))
-  // => R_thermistor = (R_series * (5V - Vout)) / Vout
+  // Calculate the thermistor resistance:
+  // V_out = V_supply * (R_series / (R_series + R_thermistor))
+  // => R_thermistor = (R_series * (V_supply - V_out)) / V_out
   float rThermistor = (SERIES_RESISTOR * (V_SUPPLY - vThermistor)) / vThermistor;
 
-  // Using the Beta formula:
-  //    (1/T) = (1/To) + (1/B) * ln(R / Ro)
-  // Where:
-  //    T  = Temperature in Kelvin
-  //    To = 25°C in Kelvin = 298.15K
-  //    R  = Current resistance
-  //    Ro = Nominal resistance at 25°C
-  //    B  = Beta coefficient
-  float steinhart;
-  steinhart = rThermistor / THERMISTOR_NOMINAL;           // R/Ro
-  steinhart = log(steinhart);                             // ln(R/Ro)
-  steinhart /= B_COEFFICIENT;                              // (1/B) * ln(R/Ro)
-  steinhart += 1.0 / (TEMPERATURE_NOMINAL + 273.15);       // + (1/To)
-  steinhart = 1.0 / steinhart;                             // Invert to get T (Kelvin)
-  steinhart -= 273.15;                                     // Convert to Celsius
+  // Apply the Beta equation:
+  float steinhart = rThermistor / THERMISTOR_NOMINAL;  // (R / Ro)
+  steinhart = log(steinhart);                           // ln(R/Ro)
+  steinhart /= B_COEFFICIENT;                           // 1/B * ln(R/Ro)
+  steinhart += 1.0 / (TEMPERATURE_NOMINAL + 273.15);      // + (1/To)
+  steinhart = 1.0 / steinhart;                           // Invert to get T (Kelvin)
+  steinhart -= 273.15;                                  // Convert Kelvin to Celsius
 
   return steinhart;
 }
 
-float getEstimationCT3(float TempT1, float TempT2) [
-  // Estimate T3 using T1 and T2
-  const float alpha = 0.1; // Filter coefficient (adjust between 0 and 1)
-  static float T3_prev = 0.0;  // Persistent variable to store previous T3 value
-
-  // Calculate the current average temperature from T1 and T2
-  float avgTemp = (TempT1 + TempT2) / 2.0;
-
-  // Apply the low-pass filter (discrete-time difference equation)
-  float T3_current = alpha * avgTemp + (1 - alpha) * T3_prev;
-
-  // Update the stored previous value
-  T3_prev = T3_current;
-
-  return T3_current;
-
-]
-
 /**
- * mapTemperatureToPWM()
- * ----------------------
- * Maps a temperature in Celsius to a PWM duty cycle (0-255).
- * Adjust the TEMP_MIN and TEMP_MAX for your application.
+ * getEstimationCT3()
+ * ------------------
+ * Estimates the temperature T3 from T1 and T2.
+ * In this example, we use a discrete first-order low-pass filter applied to the average of T1 and T2.
+ *
+ * Difference equation:
+ *   T3[n] = α * ( (T1 + T2) / 2 ) + (1 - α) * T3[n-1]
+ *
+ * where α is the filter coefficient.
  */
-int mapTemperatureToPWM(float temperatureC) {
-  // Ensure the temperature is within the configured bounds
-  if (temperatureC < TEMP_MIN) temperatureC = TEMP_MIN;
-  if (temperatureC > TEMP_MAX) temperatureC = TEMP_MAX;
-
-  // Map the temperature range [TEMP_MIN, TEMP_MAX] to [0, 255]
-  float range = TEMP_MAX - TEMP_MIN;
-  float normalized = (temperatureC - TEMP_MIN) / range;
-  int pwmValue = (int)(normalized * 255.0);
-
-  return pwmValue;
+float getEstimationCT3(float TempT1, float TempT2) {
+  const float alpha = 0.1;       // Filter coefficient (adjust between 0 and 1)
+  static float T3_prev = 0.0;      // Static variable to store previous T3 estimate
+  
+  // Calculate the average of T1 and T2
+  float avgTemp = (TempT1 + TempT2) / 2.0;
+  
+  // Apply the discrete low-pass filter
+  float T3_current = alpha * avgTemp + (1 - alpha) * T3_prev;
+  
+  // Update the previous estimate for the next iteration
+  T3_prev = T3_current;
+  
+  return T3_current;
 }
-
