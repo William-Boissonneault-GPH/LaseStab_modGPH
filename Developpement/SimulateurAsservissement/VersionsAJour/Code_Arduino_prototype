@@ -2,42 +2,139 @@
 #include <avr/interrupt.h> // Needed for ISR definitions
 #include <math.h>          // For the log() function
 
+void shiftZ(arr){
+  arr[2] = arr[1];
+  arr[1] = arr[0];
+  arr[0] = 999
+  return arr
+}
 // Pin assignments
-const int THERMISTOR_PIN1 = A0;  // Analog pin for thermistor1
-const int THERMISTOR_PIN2 = A1;  // Analog pin for thermistor2
+const int THERMISTOR1_PIN = A0;
+const int THERMISTOR2_PIN = A1;
+const int THERMISTOR3_PIN = A2;
 const int PWM_OUTPUT_PIN   = 9;  // PWM pin for analog-like output
 
-// Global temperature variables (updated in the ISR)
-volatile float T1 = 0.0;
-volatile float T2 = 0.0;
-volatile float T3 = 0.0;
 
-// PID regulator variables (for discrete control)
-const float T_goal = 25.0;   // User-set goal temperature (°C)
-volatile float error = 0.0;
-volatile float previous_error = 0.0;
-volatile float integral = 0.0;
-const float dt = 0.01;       // Sampling period (0.01 s)
+//Température Ambiante
+const float Tamb = 25.0;
 
-// PID Gains (tune these as needed)
-const float Kp = 20.0;
-const float Ki = 1.0;
-const float Kd = 0.5;
+const float T_vise = 27.0
 
-// Output PWM value
-volatile int pwmValue = 0;
+////Lecture de température
+// Résistance pull-up et constante de la thermistance
+const float R25 = 10000.0;      // Résistance nominale à 25 °C (10 kΩ)
+// Coefficients pour le calcul de la température
+const float A1_coeff = 0.003354;
+const float B1_coeff = 0.00026;
+const float C1_coeff = 2.6e-6;
+const float D1_coeff = 6.3e-8;
+//Conditionneur
+const float gainConditionneur = 4.35;
+const float VsubConditionneur = 1.95;
+//Diviseur de tension
+const float R_PULLUP = 10000.0; // Résistance pull-up (10 kΩ)
 
-// Thermistor parameters
-const float SERIES_RESISTOR   = 10000.0;    // 10kΩ resistor in series
-const float THERMISTOR_NOMINAL = 10000.0;    // Resistance at 25°C (nominal)
-const float TEMPERATURE_NOMINAL = 25.0;      // Nominal temperature (°C)
-const float B_COEFFICIENT     = 3950.0;       // Beta coefficient of the thermistor
-const float ADC_MAX           = 1023.0;       // 10-bit ADC on Arduino Uno
-const float V_SUPPLY          = 5.0;          // Supply voltage (V)
+//Initialisation Temperature initiale (updated in the ISR)
+//[T, T-1, T-2, T-3]
+volatile float T1[3] = {Tamb, Tamb, Tamb};
+volatile float T2[3] = {Tamb, Tamb, Tamb};
+volatile float T3[3] = {Tamb, Tamb, Tamb};
 
-// Temperature range for PWM mapping (if needed; here we map the PID output directly)
-const int PWM_MIN = 0;
-const int PWM_MAX = 255;
+volatile float T3_EST[3] = {Tamb, Tamb, Tamb};
+
+
+
+//Regulateur temporaire
+volatile float REG[6] = {1, -1.9104, 0.9115, 1, -1.9257, 0.9257}
+
+
+//////////////////////////////////////
+//SECTION DE COMMANDE D'ASSERVISSEMENT
+/////////////////////////////////////
+volatile float ERREUR[3] = {0, 0, 0}
+volatile float COMMANDE[3] = {0, 0, 0}
+
+
+void calculerMeilleurRegulateur(consigne) {
+  //Calculer quel régulateur en fonction de la consigne!
+  
+  //pour l'instant régulateur fixe
+  float num0 = 1;
+  float num1 = -1.9104;
+  float num2 = 0.9115;
+
+  float deno0 = 1;
+  float deno1 = -1.9257;
+  float deno2 = 0.9257;
+
+  return {num0, num1, num2, deno0, deno1, den2};
+};
+
+float Comparateur(T_consigne, T3_asserv){
+  float erreur = T_consigne - T3_asserv[0];
+
+  //Début d'une nouvelle boucle, repousse toute les valeurs!
+  ERREUR = shiftZ(ERREUR);
+  COMMANDE = shiftZ(COMMANDE);
+  T1 = shiftZ(T1);
+  T2 = shiftZ(T2);
+  T3 = shiftZ(T3);
+  T3_EST = shiftZ(T3_EST);
+
+  ERREUR[0] = erreur;
+  return erreur;
+};
+
+float Regulateur() {
+  
+  //Commande = Amperage voulu
+  Commande = REG[0]*ERREUR[0];
+  Commande += REG[1]*ERREUR[1];
+  Commande += REG[2]*ERREUR[2];
+  Commande -= REG[3]*COMMANDE[1];
+  Commande -= REG[4]*COMMANDE[2];
+
+  COMMANDE[0] = Commande;
+  //Anti wind up flag d'erreur?
+  return Commande;
+};
+
+
+//////////////////////////////////////
+//SECTION : Mesures 
+/////////////////////////////////////
+
+float calculerEstimateurAjuster() {
+
+};
+
+float estimateurT3() {
+
+};
+
+float lireTemperatureC(int adcValue) {
+  // ADC vers v_in (dans pins)
+  float V_in = (adcValue * 5) / 1023;
+
+  // Calculer V_out_diviseur (tension sortant diviseur):
+  float V_out_div = (V_in / gainConditionneur) + VsubConditionneur;
+
+  // Calculer Resistance
+  float rThermoRes = R_PULLUP * ( V_out_div / (5 - V_out_div) );
+
+  float lnR = log(rThermoRes / R25);
+  float temperatureKelvin = 1.0 / (A1_coeff + B1_coeff * lnR + C1_coeff * pow(lnR, 2) + D1_coeff * pow(lnR, 3));
+  return temperatureKelvin - 273.15;
+}
+
+//////////////////////////////////////
+//SECTION : Controle TEC
+/////////////////////////////////////
+
+int CommandeVersPWM(T1, T2) {
+
+    return PWMout
+};
 
 // ============ SETUP ============
 
@@ -104,57 +201,4 @@ ISR(TIMER1_COMPA_vect) {
 
   // 7. Write the PWM value to the output pin
   analogWrite(PWM_OUTPUT_PIN, pwmValue);
-}
-
-/**
- * getTemperatureC()
- * -----------------
- * Converts an ADC reading from a thermistor voltage divider into temperature (°C)
- * using the Beta parameter equation (a simplified form of Steinhart-Hart).
- */
-float getTemperatureC(int adcValue) {
-  // Convert ADC reading to voltage
-  float vThermistor = (adcValue * V_SUPPLY) / ADC_MAX;
-
-  // Calculate the thermistor resistance:
-  // V_out = V_supply * (R_series / (R_series + R_thermistor))
-  // => R_thermistor = (R_series * (V_supply - V_out)) / V_out
-  float rThermistor = (SERIES_RESISTOR * (V_SUPPLY - vThermistor)) / vThermistor;
-
-  // Apply the Beta equation:
-  float steinhart = rThermistor / THERMISTOR_NOMINAL;  // (R / Ro)
-  steinhart = log(steinhart);                           // ln(R/Ro)
-  steinhart /= B_COEFFICIENT;                           // 1/B * ln(R/Ro)
-  steinhart += 1.0 / (TEMPERATURE_NOMINAL + 273.15);      // + (1/To)
-  steinhart = 1.0 / steinhart;                           // Invert to get T (Kelvin)
-  steinhart -= 273.15;                                  // Convert Kelvin to Celsius
-
-  return steinhart;
-}
-
-/**
- * getEstimationCT3()
- * ------------------
- * Estimates the temperature T3 from T1 and T2.
- * In this example, we use a discrete first-order low-pass filter applied to the average of T1 and T2.
- *
- * Difference equation:
- *   T3[n] = α * ( (T1 + T2) / 2 ) + (1 - α) * T3[n-1]
- *
- * where α is the filter coefficient.
- */
-float getEstimationCT3(float TempT1, float TempT2) {
-  const float alpha = 0.1;       // Filter coefficient (adjust between 0 and 1)
-  static float T3_prev = 0.0;      // Static variable to store previous T3 estimate
-  
-  // Calculate the average of T1 and T2
-  float avgTemp = (TempT1 + TempT2) / 2.0;
-  
-  // Apply the discrete low-pass filter
-  float T3_current = alpha * avgTemp + (1 - alpha) * T3_prev;
-  
-  // Update the previous estimate for the next iteration
-  T3_prev = T3_current;
-  
-  return T3_current;
 }
