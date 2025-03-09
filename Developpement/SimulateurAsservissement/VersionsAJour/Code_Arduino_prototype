@@ -91,9 +91,10 @@ float Regulateur() {
   Commande = REG[0]*ERREUR[0];
   Commande += REG[1]*ERREUR[1];
   Commande += REG[2]*ERREUR[2];
-  Commande -= REG[3]*COMMANDE[1];
-  Commande -= REG[4]*COMMANDE[2];
+  Commande -= REG[4]*COMMANDE[1];
+  Commande -= REG[5]*COMMANDE[2];
 
+  Commande = Commande / REG[3]
   COMMANDE[0] = Commande;
   //Anti wind up flag d'erreur?
   return Commande;
