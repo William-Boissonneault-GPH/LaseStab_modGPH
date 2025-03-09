@@ -2,12 +2,11 @@
 #include <avr/interrupt.h> // Needed for ISR definitions
 #include <math.h>          // For the log() function
 
-void shiftZ(arr){
+void shiftZ(float arr[]){
   arr[2] = arr[1];
   arr[1] = arr[0];
-  arr[0] = 999
-  return arr
-}
+  arr[0] = 999;
+};
 // Pin assignments
 const int THERMISTOR1_PIN = A0;
 const int THERMISTOR2_PIN = A1;
@@ -18,7 +17,7 @@ const int PWM_OUTPUT_PIN   = 9;  // PWM pin for analog-like output
 //Température Ambiante
 const float Tamb = 25.0;
 
-const float T_vise = 27.0
+volatile float T_vise = 27.0;
 
 ////Lecture de température
 // Résistance pull-up et constante de la thermistance
@@ -36,8 +35,8 @@ const float R_PULLUP = 10000.0; // Résistance pull-up (10 kΩ)
 
 ////Driving du TEC
 const float GainSourceCourant = 3.1564;
-const float GainAmpereVersVcontrole = 1 / GainAmpereVersVcontrole;
-const float VsubControle = 0.8323
+const float GainAmpereVersVcontrole = 1 / GainSourceCourant;
+const float VsubControle = 0.8323;
 
 //Initialisation Temperature initiale (updated in the ISR)
 //[T, T-1, T-2, T-3]
@@ -47,19 +46,24 @@ volatile float T3[3] = {Tamb, Tamb, Tamb};
 
 volatile float T3_EST[3] = {Tamb, Tamb, Tamb};
 
-float clock = 0
+float clock = 0;
 //Regulateur temporaire
-volatile float REG[6] = {1, -1.9104, 0.9115, 1, -1.9257, 0.9257}
+volatile float REG[6] = {1, -1.9104, 0.9115, 1, -1.9257, 0.9257};
 
+//Selection d'asservissement basé sur Estimé (0) ou sur T3 (1)
+volatile int Asserv_T3EST_False_T3_True = 0;
 
 //////////////////////////////////////
 //SECTION DE COMMANDE D'ASSERVISSEMENT
 /////////////////////////////////////
-volatile float ERREUR[3] = {0, 0, 0}
-volatile float COMMANDE[3] = {0, 0, 0}
+volatile float ERREUR[3] = {0, 0, 0};
+volatile float COMMANDE[3] = {0, 0, 0};
+
+float DELTAT3_based_T2[3] = {0, 0, 0};
+float DELTAT3_based_T1[3] = {0, 0, 0};
 
 
-void calculerMeilleurRegulateur(consigne) {
+void calculerMeilleurRegulateur(float consigne) {
   //Calculer quel régulateur en fonction de la consigne!
   
   //pour l'instant régulateur fixe
@@ -71,34 +75,41 @@ void calculerMeilleurRegulateur(consigne) {
   float deno1 = -1.9257;
   float deno2 = 0.9257;
 
-  return {num0, num1, num2, deno0, deno1, den2};
+  REG[0] = num0;
+  REG[1] = num1;
+  REG[2] = num2;
+  REG[3] = deno0;
+  REG[4] = deno1;
+  REG[5] = deno2;
 };
 
-float Comparateur(T_consigne, T3_asserv){
+float Comparateur(float T_consigne, float T3_asserv[]){
   float erreur = T_consigne - T3_asserv[0];
 
   //Début d'une nouvelle boucle, repousse toute les valeurs!
-  ERREUR = shiftZ(ERREUR);
-  COMMANDE = shiftZ(COMMANDE);
-  T1 = shiftZ(T1);
-  T2 = shiftZ(T2);
-  T3 = shiftZ(T3);
-  T3_EST = shiftZ(T3_EST);
+  shiftZ(ERREUR);
+  shiftZ(COMMANDE);
+  shiftZ(T1);
+  shiftZ(T2);
+  shiftZ(T3);
+  shiftZ(T3_EST);
+  shiftZ(DELTAT3_based_T2);
+  shiftZ(DELTAT3_based_T1);
 
   ERREUR[0] = erreur;
   return erreur;
 };
 
 float Regulateur() {
-  float GainREG = 0.5
+  float GainREG = 0.5;
   //Commande = Amperage voulu
-  Commande = REG[0]*ERREUR[0];
-  Commande += REG[1]*ERREUR[1];
-  Commande += REG[2]*ERREUR[2];
+  float Commande = REG[0]*ERREUR[0]*GainREG;
+  Commande += REG[1]*ERREUR[1]*GainREG;
+  Commande += REG[2]*ERREUR[2]*GainREG;
   Commande -= REG[4]*COMMANDE[1];
   Commande -= REG[5]*COMMANDE[2];
 
-  Commande = (Commande / REG[3]) * GainREG
+  Commande = (Commande / REG[3]);
   COMMANDE[0] = Commande;
   //Anti wind up flag d'erreur?
   return Commande;
@@ -114,10 +125,6 @@ float recalculerEstimateurAjuster() {
 
 };
 
-float DELTAT3_based_T2[3] = {0, 0, 0};
-float DELTAT3_based_T1[3] = {0, 0, 0};
-
-
 float estimateurT3() {
   float GT1T3[6] = {0, 0.0031, 0.0028, 1, -1.7751, 0.7841};
   float GT2T3[4] = {0, 0.0833, 1, -0.9024};
@@ -126,7 +133,7 @@ float estimateurT3() {
   float beta = 1- alpha; 
 
   ///DELTAT3_based_T2
-  DeltaT3_b_T2 = (T2[0]-Tamb)*GT2T3[0];
+  float DeltaT3_b_T2 = (T2[0]-Tamb)*GT2T3[0];
   DeltaT3_b_T2 += (T2[1]-Tamb)*GT2T3[1];
   DeltaT3_b_T2 -= (DELTAT3_based_T2[1])*GT2T3[3];
   DeltaT3_b_T2 = DeltaT3_b_T2 / GT2T3[2];
@@ -136,7 +143,7 @@ float estimateurT3() {
 
 
   ///DELTAT3_based_T1
-  DeltaT3_b_T1 = (T1[0]-Tamb)*GT1T3[0];
+  float DeltaT3_b_T1 = (T1[0]-Tamb)*GT1T3[0];
   DeltaT3_b_T1 += (T1[1]-Tamb)*GT1T3[1];
   DeltaT3_b_T1 += (T1[2]-Tamb)*GT1T3[2];
   DeltaT3_b_T1 -= (DELTAT3_based_T1[1])*GT1T3[4];
@@ -145,11 +152,11 @@ float estimateurT3() {
 
   DELTAT3_based_T1[0] = DeltaT3_b_T1;
 
-  float dT = DeltaT3_b_T1 * alpha + DeltaT3_b_T2 * beta
+  float dT = DeltaT3_b_T1 * alpha + DeltaT3_b_T2 * beta;
 
-  T3_estime = T3_EST + dT
-  T3_EST[0] = T3_estime
-  return T3_estime
+  float T3_estime = Tamb + dT;
+  T3_EST[0] = T3_estime;
+  return T3_estime;
 };
 
 float traduireTemperatureC(int adcValue) {
@@ -171,16 +178,16 @@ float traduireTemperatureC(int adcValue) {
 //SECTION : Controle TEC
 /////////////////////////////////////
 
-int CommandeVersPWM(Commande) {
+int CommandeVersPWM(float Commande) {
 
   float V_controle = GainAmpereVersVcontrole * Commande;
 
-  float DutyCycle = 100 * (V_controle + VsubControle) / (2*VsubControle)
-  int PWMout = 2.55 * DutyCycle
+  float DutyCycle = 100 * (V_controle + VsubControle) / (2*VsubControle);
+  int PWMout = 2.55 * DutyCycle;
 
   // Ensure PWMout is within 0-255
   PWMout = constrain(PWMout, 0, 255);
-  return PWMout
+  return PWMout;
 };
 
 // ============ SETUP ============
@@ -217,6 +224,10 @@ void loop() {
     if (command.startsWith("SETPOINT:")) {
       T_vise = command.substring(9).toFloat();  // Extract setpoint value
     }
+
+    if (command.startsWith("ASSERVT3:")) {
+      Asserv_T3EST_False_T3_True = command.substring(9).toInt();  // Extract setpoint value
+    }
   }
 
   delay(500);  // 1 second delay for readability
@@ -225,8 +236,16 @@ void loop() {
 ISR(TIMER1_COMPA_vect) {
   clock += 2;
 
+  float e;
   //1. Comparateur et shift de mémoire, ERREUR OK
-  float e = Comparateur(T_vise, T3_EST);
+  if (Asserv_T3EST_False_T3_True == 0){
+    e = Comparateur(T_vise, T3_EST);
+  }else{
+    e = Comparateur(T_vise, T3);
+  }
+
+  Serial.print("erreur:");
+  Serial.print(e);
 
   //2. Regulateur, COMMANDE OK
   float c = Regulateur();
@@ -235,10 +254,16 @@ ISR(TIMER1_COMPA_vect) {
   int PWM_commande = CommandeVersPWM(c);
   analogWrite(PWM_OUTPUT_PIN, PWM_commande);
 
+  Serial.print(",  PWM comande :");
+  Serial.print(PWM_commande);
+  Serial.print(", Setpoint :");
+  Serial.println(T_vise);
+
+
   //4. Mesurer T
-  int adcValue1 = analogRead(THERMISTOR_PIN1);
-  int adcValue2 = analogRead(THERMISTOR_PIN2);
-  int adcValue3 = analogRead(THERMISTOR_PIN3);
+  int adcValue1 = analogRead(THERMISTOR1_PIN);
+  int adcValue2 = analogRead(THERMISTOR2_PIN);
+  int adcValue3 = analogRead(THERMISTOR3_PIN);
 
   T1[0] = traduireTemperatureC(adcValue1);
   T2[0] = traduireTemperatureC(adcValue2);
