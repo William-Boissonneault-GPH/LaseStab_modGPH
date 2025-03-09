@@ -8,26 +8,33 @@ from matplotlib.animation import FuncAnimation
 
 def lancer_simulation(params):
     """Lance la simulation thermique avec les paramètres fournis par l'interface."""
-    
+    print("🟡 Début de la simulation...")
     # Récupération des paramètres depuis l'interface
-    dim_x = params["dim_x_plaque"]
-    dim_y = params["dim_y_plaque"]
-    dim_z = params["dim_z_plaque"]
-    h = params["coefficient_convection"]
-    cp = params["capacite_thermique"]
-    k = params["conductivite_thermique"]
-    T_init = params["temperature_initiale"]
+    dim_x = params["Dimension_x_plaque"]
+    dim_y = params["Dimension_y_plaque"]
+    dim_z = params["Dimension_z_plaque"]
+    h = params["Coéfficient_convection"]
+    cp = params["Capacité_thermique"]
+    k = params["Conductivité_thermique"]
+    T_init = params["Température_initiale"]
+    echelonCourant = params["Échelon_courant_(A)"]
+    totalTime= params["Temps_simulation_(s)"]
 
-    pos_x_thermo1 = params["pos_x_thermo1"]
-    pos_y_thermo1 = params["pos_y_thermo1"]
-    pos_x_thermo2 = params["pos_x_thermo2"]
-    pos_y_thermo2 = params["pos_y_thermo2"]
-    pos_x_thermo3 = params["pos_x_thermo3"]
-    pos_y_thermo3 = params["pos_y_thermo3"]
+    pos_x_thermo1 = params["Position_x_thermo1"]
+    pos_y_thermo1 = params["Position_y_thermo1"]
+    pos_x_thermo2 = params["Position_x_thermo2"]
+    pos_y_thermo2 = params["Position_y_thermo2"]
+    pos_x_thermo3 = params["Position_x_thermo3"]
+    pos_y_thermo3 = params["Position_y_thermo3"]
+
+    pos_x_TEC = params["Position_x_TEC"]
+    pos_y_TEC = params["Position_y_TEC"]
+    dim_x_TEC = params["Dimension_x_TEC"]
+    dim_y_TEC = params["Dimension_y_TEC"]
 
     # Création de la plaque thermique avec les paramètres de l'interface
     PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), "Aluminium", h, (0.001, 0.001), T_init)
-    TecA = ActionneurThermique((0.096, 0.031), (0.015, 0.0156), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
+    TecA = ActionneurThermique((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
     # Création des thermorésistances avec les positions spécifiées par l'utilisateur
     thermo1 = thermo(position=(pos_x_thermo1, pos_y_thermo1), diamètre=0.008, épaisseur=0.001, plaque=PlaqueA)
@@ -37,10 +44,9 @@ def lancer_simulation(params):
     Thermistances = [thermo1, thermo2, thermo3]
 
     ### Simulation
-    echelonCourant = -0.7
     TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)
 
-    totalTime = 1600
+    totalTime = totalTime
     num_frames = 580000
     dTime = totalTime / num_frames
     animationStep = 1600
@@ -51,7 +57,7 @@ def lancer_simulation(params):
 
     for i in range(num_frames):
         if i == num_frames / 2:
-            echelonCourant = -0.7
+            echelonCourant = echelonCourant
 
         if i % animationStep == 0:
             video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation]))
@@ -109,4 +115,3 @@ def lancer_simulation(params):
         writer.writerows(rows)
 
     print("CSV file saved successfully!")
-
