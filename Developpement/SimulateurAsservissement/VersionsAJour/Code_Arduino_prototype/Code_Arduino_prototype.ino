@@ -16,8 +16,10 @@ const int PWM_OUTPUT_PIN   = 5;  // PWM pin for analog-like output
 
 //Température Ambiante
 const float Tamb = 24.0;
-
+const float TempMax = 35.0;
+const float TempMin = 15.0;
 volatile float T_vise = 24.0;
+volatile float T_asserv = 24.0;  //Pour anti wind-up
 
 ////Lecture de température
 // Résistance pull-up et constante de la thermistance
@@ -238,12 +240,20 @@ void loop() {
 ISR(TIMER1_COMPA_vect) {
   clock += 2;
 
+  //Anti wind-up
+  T_asserv = T_vise;
+  if (T_vise > TempMax){
+    T_asserv = TempMax;
+  } else if (T_vise < TempMin){
+    T_asserv = TempMin;
+  } 
+
   float e;
   //1. Comparateur et shift de mémoire, ERREUR OK
   if (Asserv_T3EST_False_T3_True == 0){
-    e = Comparateur(T_vise, T3_EST);
+    e = Comparateur(T_asserv, T3_EST);
   }else{
-    e = Comparateur(T_vise, T3);
+    e = Comparateur(T_asserv, T3);
   }
 
   Serial.print("erreur:");
