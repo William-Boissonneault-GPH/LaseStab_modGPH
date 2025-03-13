@@ -2,109 +2,129 @@ RESULTS PER SETPOINT REGION:
 Setpoint: 25.0
   StartIndex: 0, EndIndex: 3
   Duration of Setpoint: 4.093770499999998 seconds
-  Permanent Regime Start Time: None
-  Time To Stable: None seconds
+  Settling Time: None
+  Time To Settle: None seconds
   StdDev (Temp3, Full Region): 0.015275252316519916
   StdDev (Temp4, Full Region): 0.02516611478423624
-  StdDev (Temp3, Perm Regime): None
-  StdDev (Temp4, Perm Regime): None
+  StdDev (Temp3, Stable): None
+  StdDev (Temp4, Stable): None
   Time Constant Tau for Temp4: None seconds
+  Maximum Diff (Temp3 - Temp4): 0.21000000000000085
+  Average Diff (Temp3 - Temp4): 0.1733333333333332
 
 Setpoint: 27.0
   StartIndex: 3, EndIndex: 195
   Duration of Setpoint: 386.20654602999997 seconds
-  Permanent Regime Start Time: 198.9816859
-  Time To Stable: 171.85898783 seconds
+  Settling Time: 85.76747823
+  Time To Settle: 58.644780159999996 seconds
   StdDev (Temp3, Full Region): 0.7487378978531143
   StdDev (Temp4, Full Region): 0.7884785517644065
-  StdDev (Temp3, Perm Regime): 0.039185410360455135
-  StdDev (Temp4, Perm Regime): 0.026406811558810223
+  StdDev (Temp3, Stable): 0.18101477441674804
+  StdDev (Temp4, Stable): 0.17588884432024937
   Time Constant Tau for Temp4: 46.72128327892925 seconds
+  Maximum Diff (Temp3 - Temp4): 0.26000000000000156
+  Average Diff (Temp3 - Temp4): 0.14760416666666723
 
 Setpoint: 30.0
   StartIndex: 195, EndIndex: 501
   Duration of Setpoint: 616.8278332 seconds
-  Permanent Regime Start Time: 603.4061267
-  Time To Stable: 188.05916689999998 seconds
+  Settling Time: 476.0251849
+  Time To Settle: 60.67822510000002 seconds
   StdDev (Temp3, Full Region): 0.706051682117277
   StdDev (Temp4, Full Region): 0.7535631201019019
-  StdDev (Temp3, Perm Regime): 0.061510283091806554
-  StdDev (Temp4, Perm Regime): 0.06512731387164485
+  StdDev (Temp3, Stable): 0.17704437337833578
+  StdDev (Temp4, Stable): 0.17261681233260065
   Time Constant Tau for Temp4: 49.22525974861543 seconds
+  Maximum Diff (Temp3 - Temp4): 0.4299999999999997
+  Average Diff (Temp3 - Temp4): 0.2960784313725488
 
 Setpoint: 25.0
   StartIndex: 501, EndIndex: 554
   Duration of Setpoint: 105.16006500000003 seconds
-  Permanent Regime Start Time: None
-  Time To Stable: None seconds
+  Settling Time: 1131.172734
+  Time To Settle: 97.041203 seconds
   StdDev (Temp3, Full Region): 1.9113013712612656
   StdDev (Temp4, Full Region): 1.9065253845910324
-  StdDev (Temp3, Perm Regime): None
-  StdDev (Temp4, Perm Regime): None
+  StdDev (Temp3, Stable): 0.08706319543871524
+  StdDev (Temp4, Stable): 0.1035857133006294
   Time Constant Tau for Temp4: 66.64121942499992 seconds
+  Maximum Diff (Temp3 - Temp4): 0.6900000000000013
+  Average Diff (Temp3 - Temp4): 0.5222641509433962
 
 Setpoint: 22.5
   StartIndex: 554, EndIndex: 729
   Duration of Setpoint: 351.843085 seconds
-  Permanent Regime Start Time: 1240.368229
-  Time To Stable: 99.10057399999982 seconds
+  Settling Time: 1214.067096
+  Time To Settle: 72.79944099999989 seconds
   StdDev (Temp3, Full Region): 0.6233998735152667
   StdDev (Temp4, Full Region): 0.7504233594383938
-  StdDev (Temp3, Perm Regime): 0.08233528048594017
-  StdDev (Temp4, Perm Regime): 0.06523724712691667
+  StdDev (Temp3, Stable): 0.10423815397059161
+  StdDev (Temp4, Stable): 0.1334666859988085
   Time Constant Tau for Temp4: 61.3603283333332 seconds
+  Maximum Diff (Temp3 - Temp4): 0.4499999999999993
+  Average Diff (Temp3 - Temp4): 0.11039999999999991
 
 Setpoint: 27.0
   StartIndex: 729, EndIndex: 842
   Duration of Setpoint: 226.4471739999999 seconds
-  Permanent Regime Start Time: 1656.898679
-  Time To Stable: 161.73307099999988 seconds
+  Settling Time: 1574.02525
+  Time To Settle: 78.8596419999999 seconds
   StdDev (Temp3, Full Region): 1.5871595218065475
   StdDev (Temp4, Full Region): 1.6405293414710878
-  StdDev (Temp3, Perm Regime): 0.049612131947373815
-  StdDev (Temp4, Perm Regime): 0.06834072391666984
+  StdDev (Temp3, Stable): 0.32885100589776284
+  StdDev (Temp4, Stable): 0.27372622437194893
   Time Constant Tau for Temp4: 55.444958440941036 seconds
+  Maximum Diff (Temp3 - Temp4): 0.3299999999999983
+  Average Diff (Temp3 - Temp4): 0.16663716814159307
 
 Setpoint: 25.0
   StartIndex: 842, EndIndex: 926
   Duration of Setpoint: 167.84516299999996 seconds
-  Permanent Regime Start Time: 1818.678898
-  Time To Stable: 95.03045499999985 seconds
+  Settling Time: 1790.398863
+  Time To Settle: 66.75041999999985 seconds
   StdDev (Temp3, Full Region): 0.798244730661397
   StdDev (Temp4, Full Region): 0.8268026256341922
-  StdDev (Temp3, Perm Regime): 0.056892765680592275
-  StdDev (Temp4, Perm Regime): 0.04852168952493662
+  StdDev (Temp3, Stable): 0.1876981306121457
+  StdDev (Temp4, Stable): 0.22715598855688332
   Time Constant Tau for Temp4: 65.09479879733317 seconds
+  Maximum Diff (Temp3 - Temp4): 0.2900000000000027
+  Average Diff (Temp3 - Temp4): 0.17583333333333337
 
 Setpoint: 29.0
   StartIndex: 926, EndIndex: 1245
   Duration of Setpoint: 643.0440909999998 seconds
-  Permanent Regime Start Time: 2065.405687
-  Time To Stable: 171.91990799999985 seconds
+  Settling Time: 1964.294137
+  Time To Settle: 70.808358 seconds
   StdDev (Temp3, Full Region): 0.9202997776612748
   StdDev (Temp4, Full Region): 0.9717372501121156
-  StdDev (Temp3, Perm Regime): 0.08445732575574726
-  StdDev (Temp4, Perm Regime): 0.10102156933239032
+  StdDev (Temp3, Stable): 0.19468281510443852
+  StdDev (Temp4, Stable): 0.16452130860898587
   Time Constant Tau for Temp4: 51.13815491519995 seconds
+  Maximum Diff (Temp3 - Temp4): 0.34999999999999787
+  Average Diff (Temp3 - Temp4): 0.23278996865203772
 
 Setpoint: 25.0
   StartIndex: 1245, EndIndex: 1273
   Duration of Setpoint: 54.61489399999982 seconds
-  Permanent Regime Start Time: None
-  Time To Stable: None seconds
+  Settling Time: None
+  Time To Settle: None seconds
   StdDev (Temp3, Full Region): 0.7416619404165444
   StdDev (Temp4, Full Region): 0.653387084766513
-  StdDev (Temp3, Perm Regime): None
-  StdDev (Temp4, Perm Regime): None
+  StdDev (Temp3, Stable): None
+  StdDev (Temp4, Stable): None
   Time Constant Tau for Temp4: None seconds
+  Maximum Diff (Temp3 - Temp4): 0.6000000000000014
+  Average Diff (Temp3 - Temp4): 0.47464285714285676
 
 Setpoint: 20.0
   StartIndex: 1273, EndIndex: 1707
   Duration of Setpoint: 875.5642040000002 seconds
-  Permanent Regime Start Time: 2732.673419
-  Time To Stable: 137.52787000000035 seconds
+  Settling Time: 2716.496351
+  Time To Settle: 121.35080199999993 seconds
   StdDev (Temp3, Full Region): 1.3372979414507233
   StdDev (Temp4, Full Region): 1.4938616283582264
-  StdDev (Temp3, Perm Regime): 0.45621443357471864
-  StdDev (Temp4, Perm Regime): 0.6399298889286371
+  StdDev (Temp3, Stable): 0.452110803271408
+  StdDev (Temp4, Stable): 0.6340892911215227
   Time Constant Tau for Temp4: 70.84780622000017 seconds
+  Maximum Diff (Temp3 - Temp4): 1.1400000000000006
+  Average Diff (Temp3 - Temp4): 0.3557373271889398
