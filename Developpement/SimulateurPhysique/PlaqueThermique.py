@@ -6,7 +6,7 @@ class PlaqueThermique():
         ###Indication de l'objet est rendu à quelle temps de simulation
         self.time = 0
 
-        ###(largeur, longeur, epaisseur) en [m] 
+        ###(largeur, longeur, epaisseur) en [m]
         self.dimensions = dimensions
 
         #self.k = Conductivité Thermique [W/m·K]

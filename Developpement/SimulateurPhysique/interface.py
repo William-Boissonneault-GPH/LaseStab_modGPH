@@ -46,7 +46,7 @@ class SimulationInterface(ctk.CTk):
         """Ajoute une image explicative sous les paramètres avec un titre"""
         try:
             # Chemin vers l'image
-            chemin_image = r"C:\Users\claud\OneDrive\Documents\rapport2 design2\Schéma_dimensions.jfif"
+            chemin_image = r"C:\Users\claud\OneDrive\Documents\rapport2 design2\Schéma_dimensions.png"
 
             # Créer un cadre pour l'image et le titre
             frame_image = ctk.CTkFrame(self)
@@ -57,7 +57,7 @@ class SimulationInterface(ctk.CTk):
             titre.pack(pady=(10, 5))
 
             # Charger et afficher l’image
-            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(800, 500))  # Augmente la taille
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(710, 440))  # Augmente la taille
             label_image = ctk.CTkLabel(frame_image, image=image, text="")
             label_image.pack(pady=5)
 
