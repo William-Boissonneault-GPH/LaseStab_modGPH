@@ -16,6 +16,7 @@ def lancer_simulation(params):
     h = params["Coéfficient_convection"]
     cp = params["Capacité_thermique"]
     k = params["Conductivité_thermique"]
+    rho = params["Densité"]
     T_init = params["Température_initiale"]
     echelonCourant = params["Échelon_courant_(A)"]
     totalTime= params["Temps_simulation_(s)"]
@@ -33,7 +34,7 @@ def lancer_simulation(params):
     dim_y_TEC = params["Dimension_y_TEC"]
 
     # Création de la plaque thermique avec les paramètres de l'interface
-    PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), "Aluminium", h, (0.001, 0.001), T_init)
+    PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), (k, rho, cp), h, (0.001, 0.001), T_init)
     TecA = ActionneurThermique((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
     # Création des thermorésistances avec les positions spécifiées par l'utilisateur

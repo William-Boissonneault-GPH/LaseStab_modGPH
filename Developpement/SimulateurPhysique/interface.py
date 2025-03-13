@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from MAIN import lancer_simulation  
 from tkinter import messagebox
-import threading  
+from PIL import Image  
 
 ctk.set_appearance_mode("dark")  
 ctk.set_default_color_theme("blue")  
@@ -9,69 +9,104 @@ ctk.set_default_color_theme("blue")
 class SimulationInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
-
         self.title("Simulation Thermique")
-        self.geometry("600x500")
+        self.geometry("700x600")
 
-        # Stocker les variables
-        self.variables = {
-            "Position_x_thermo1": ctk.StringVar(value="0.10475"),
-            "Position_y_thermo1": ctk.StringVar(value="0.031"),
-            "Position_x_thermo2": ctk.StringVar(value="0.05835"),
-            "Position_y_thermo2": ctk.StringVar(value="0.031"),
-            "Position_x_thermo3": ctk.StringVar(value="0.01225"),
-            "Position_y_thermo3": ctk.StringVar(value="0.031"),
-            "Coéfficient_convection": ctk.StringVar(value="15"),
-            "Capacité_thermique": ctk.StringVar(value="900"),
-            "Conductivité_thermique": ctk.StringVar(value="237"),
-            "Dimension_x_plaque": ctk.StringVar(value="0.11875"),
-            "Dimension_y_plaque": ctk.StringVar(value="0.062"),
-            "Dimension_z_plaque": ctk.StringVar(value="0.002"),
-            "Température_initiale": ctk.StringVar(value="24"),
-            "Échelon_courant_(A)": ctk.StringVar(value="-0.7"),
-            "Temps_simulation_(s)": ctk.StringVar(value="1600"),
-            "Position_x_TEC": ctk.StringVar(value="0.096"),
-            "Position_y_TEC": ctk.StringVar(value="0.031"),
-            "Dimension_x_TEC": ctk.StringVar(value="0.015"),
-            "Dimension_y_TEC": ctk.StringVar(value="0.0156")
-
+        # Définition des paramètres par section
+        self.thermistances = {
+            "Position_x_thermo1": "0.10475", "Position_y_thermo1": "0.031",
+            "Position_x_thermo2": "0.05835", "Position_y_thermo2": "0.031",
+            "Position_x_thermo3": "0.01225", "Position_y_thermo3": "0.031"
         }
 
+        self.tec = {
+            "Position_x_TEC": "0.096", "Position_y_TEC": "0.031",
+            "Dimension_x_TEC": "0.015", "Dimension_y_TEC": "0.0156"
+        }
+
+        self.plaque = {
+            "Dimension_x_plaque": "0.11875", "Dimension_y_plaque": "0.062",
+            "Dimension_z_plaque": "0.002", "Coéfficient_convection": "15",
+            "Température_initiale": "24"
+        }
+
+        self.proprietes_materiau = {
+            "Conductivité_thermique": "205", "Densité": "2700",
+            "Capacité_thermique": "900"
+        }
+
+        self.details_simulation = {
+            "Échelon_courant_(A)": "-0.7", "Temps_simulation_(s)": "1600"
+        }
+
+        # Créer les widgets
         self.create_widgets()
 
+    def ajouter_image(self):
+        """Ajoute une image explicative sous les paramètres avec un titre"""
+        try:
+            # Chemin vers l'image
+            chemin_image = r"C:\Users\claud\OneDrive\Documents\rapport2 design2\Schéma_dimensions.jfif"
+
+            # Créer un cadre pour l'image et le titre
+            frame_image = ctk.CTkFrame(self)
+            frame_image.grid(row=21, column=0, columnspan=5, pady=20, padx=10, sticky="nsew")
+
+            # Ajouter un titre au-dessus de l’image
+            titre = ctk.CTkLabel(frame_image, text="Schéma des dimensions demandées", font=("Arial", 14, "bold"))
+            titre.pack(pady=(10, 5))
+
+            # Charger et afficher l’image
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(800, 500))  # Augmente la taille
+            label_image = ctk.CTkLabel(frame_image, image=image, text="")
+            label_image.pack(pady=5)
+
+        except Exception as e:
+            print(f"Erreur lors du chargement de l'image : {e}")
+
+
     def create_widgets(self):
-        """Crée et place les widgets dans l'interface"""
-        row = 0
-        ctk.CTkLabel(self, text="Paramètres de la Simulation", font=("Arial", 16, "bold")).grid(row=row, column=0, columnspan=2, pady=10)
+        """Crée et place les widgets dans l'interface en sections"""
+        self.create_section("Thermistances", self.thermistances, 0)
+        self.create_section("TEC", self.tec, 1)
+        self.create_section("Plaque", self.plaque, 2)
+        self.create_section("Propriétés du matériau", self.proprietes_materiau, 3)
+        self.create_section("Détails de la simulation", self.details_simulation, 4, add_button=True)
+        self.ajouter_image()
 
-        # Création des entrées pour chaque paramètre
-        for key, var in self.variables.items():
-            row += 1
-            label = key.replace("_", " ").capitalize()
-            ctk.CTkLabel(self, text=label).grid(row=row, column=0, padx=10, pady=5, sticky="w")
-            ctk.CTkEntry(self, textvariable=var).grid(row=row, column=1, padx=10, pady=5)
+    def create_section(self, title, parameters, col, add_button=False):
+        """Crée une section avec un titre et des entrées pour les paramètres."""
+        frame = ctk.CTkFrame(self)
+        frame.grid(row=0, column=col, padx=10, pady=10, sticky="n")
 
-        # Bouton pour lancer la simulation
-        row += 1
-        self.btn_lancer = ctk.CTkButton(self, text="Lancer Simulation", command=self.lancer_simulation_interface)
-        self.btn_lancer.grid(row=row, column=0, columnspan=2, pady=20)
+        ctk.CTkLabel(frame, text=title, font=("Arial", 14, "bold")).pack(pady=5)
+        
+        for key, default_value in parameters.items():
+            var = ctk.StringVar(value=default_value)
+            parameters[key] = var  # Stocker la variable pour la récupérer plus tard
+            ctk.CTkLabel(frame, text=key.replace("_", " ")).pack(anchor="w")
+            ctk.CTkEntry(frame, textvariable=var).pack(pady=2)
+
+        # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
+        if add_button:
+            ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
     def lancer_simulation_interface(self):
-        """Récupère les paramètres et lance la simulation sur le thread principal."""
+        """Récupère les paramètres et lance la simulation."""
         try:
-            params = {key: float(var.get()) for key, var in self.variables.items()}
-            print("🟢 Paramètres récupérés :", params)  
-
-            # Lancer la simulation sur le thread principal
+            params = {**self.get_values(self.thermistances),
+                      **self.get_values(self.tec),
+                      **self.get_values(self.plaque),
+                      **self.get_values(self.proprietes_materiau),
+                      **self.get_values(self.details_simulation)}
+            print("🟢 Paramètres récupérés :", params)
             self.after(100, lambda: lancer_simulation(params))
-
-            print("🟢 Simulation en cours...")  
-
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
 
-        except ValueError:
-            messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
+    def get_values(self, param_dict):
+        """Convertit les valeurs des dictionnaires en float."""
+        return {key: float(var.get()) for key, var in param_dict.items()}
 
 if __name__ == "__main__":
     app = SimulationInterface()
