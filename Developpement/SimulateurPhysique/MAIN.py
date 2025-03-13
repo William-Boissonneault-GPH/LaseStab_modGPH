@@ -20,6 +20,8 @@ def lancer_simulation(params):
     T_init = params["Température_initiale"]
     echelonCourant = params["Échelon_courant_(A)"]
     totalTime= params["Temps_simulation_(s)"]
+    sources_chaleur = params["Sources_chaleur"]  
+
 
     pos_x_thermo1 = params["Position_x_thermo1"]
     pos_y_thermo1 = params["Position_y_thermo1"]
@@ -59,12 +61,20 @@ def lancer_simulation(params):
     for i in range(num_frames):
         if i == num_frames / 2:
             echelonCourant = echelonCourant
+        # Génération de la matrice de puissance thermique
+        mat_puissance = PlaqueA.generer_mat_puissance(sources_chaleur)
 
+        
         if i % animationStep == 0:
-            video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation]))
+            video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation, mat_puissance]))
             TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)
         else:
-            PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation])
+            PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation, mat_puissance])
+        #if i % animationStep == 0:
+            #video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation]))
+            #TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)
+        #else:
+            #PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation])
         
         for j, thermistance in enumerate(Thermistances):
             temperatures[j].append(thermistance.lire_temperature())

@@ -175,3 +175,20 @@ class PlaqueThermique():
 
     def recolterTempAUnePosition(self, pos):
         pass
+
+    def generer_mat_puissance(plaque, sources):
+        mat_puissance = np.zeros_like(plaque.matTemperature)
+        for source in sources:
+            x, y, puissance = source["x"], source["y"], source["puissance"]
+            
+            # Utiliser les bonnes clés pour accéder aux dimensions des éléments finis
+            dX = plaque.dimensionsElementFinie["dX"]
+            dY = plaque.dimensionsElementFinie["dY"]
+            
+            i, j = int(x / dX), int(y / dY)  # Trouver l'index correspondant sur la grille
+            
+            # Ajouter la puissance au bon emplacement en W/m²
+            mat_puissance[i, j] += puissance / (dX * dY)  
+
+        return mat_puissance
+

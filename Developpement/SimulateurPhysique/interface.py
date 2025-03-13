@@ -36,8 +36,13 @@ class SimulationInterface(ctk.CTk):
         }
 
         self.details_simulation = {
-            "Échelon_courant_(A)": "-0.7", "Temps_simulation_(s)": "1600"
+            "Échelon_courant_(A)": "-0.7",
+            "Temps_simulation_(s)": "1600",
+            "Position_x_perturbation": "0.05",  # Nouveau champ pour la position X
+            "Position_y_perturbation": "0.03",  # Nouveau champ pour la position Y
+            "Puissance_perturbation_(W)": "0.5"   # Nouveau champ pour la puissance thermique
         }
+
 
         # Créer les widgets
         self.create_widgets()
@@ -95,14 +100,24 @@ class SimulationInterface(ctk.CTk):
         """Récupère les paramètres et lance la simulation."""
         try:
             params = {**self.get_values(self.thermistances),
-                      **self.get_values(self.tec),
-                      **self.get_values(self.plaque),
-                      **self.get_values(self.proprietes_materiau),
-                      **self.get_values(self.details_simulation)}
+                    **self.get_values(self.tec),
+                    **self.get_values(self.plaque),
+                    **self.get_values(self.proprietes_materiau),
+                    **self.get_values(self.details_simulation)}
+            
+            # Transformation des valeurs de perturbation en une liste de sources
+            params["Sources_chaleur"] = [{
+                "x": params.pop("Position_x_perturbation"),
+                "y": params.pop("Position_y_perturbation"),
+                "puissance": params.pop("Puissance_perturbation_(W)")
+            }]
+            
             print("🟢 Paramètres récupérés :", params)
             self.after(100, lambda: lancer_simulation(params))
+
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
+
 
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""
