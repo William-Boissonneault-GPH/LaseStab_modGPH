@@ -28,7 +28,7 @@ class SimulationInterface(ctk.CTk):
 
         self.plaque = {
             "Dimension_x_plaque": "0.11875", "Dimension_y_plaque": "0.062",
-            "Dimension_z_plaque": "0.002", "Coéfficient_convection": "14",
+            "Dimension_z_plaque": "0.0016", "Coéfficient_convection": "14",
             "Température_initiale": "24"
         }
 
