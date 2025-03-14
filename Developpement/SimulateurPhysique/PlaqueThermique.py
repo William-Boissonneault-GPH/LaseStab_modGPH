@@ -181,13 +181,12 @@ class PlaqueThermique():
         for source in sources:
             x, y, puissance = source["x"], source["y"], source["puissance"]
             
-            # Utiliser les bonnes clés pour accéder aux dimensions des éléments finis
             dX = plaque.dimensionsElementFinie["dX"]
             dY = plaque.dimensionsElementFinie["dY"]
             
-            i, j = int(x / dX), int(y / dY)  # Trouver l'index correspondant sur la grille
+            i, j = int(x / dX), int(y / dY)  
             
-            # Ajouter la puissance au bon emplacement en W/m²
+            # Ajouter la puissance au bon emplacement en W/m2
             mat_puissance[i, j] += puissance / (dX * dY)  
 
         return mat_puissance
