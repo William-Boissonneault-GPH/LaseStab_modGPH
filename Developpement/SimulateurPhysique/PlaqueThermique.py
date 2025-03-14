@@ -186,8 +186,35 @@ class PlaqueThermique():
             
             i, j = int(x / dX), int(y / dY)  
             
-            # Ajouter la puissance au bon emplacement en W/m2
+            # ajouter la puissance au bon emplacement en W/m2
             mat_puissance[i, j] += puissance / (dX * dY)  
 
         return mat_puissance
+    
+    import numpy as np
+
+    # def generer_mat_puissance(self, sources):
+    #     mat_puissance = np.zeros_like(self.matTemperature)
+
+    #     for source in sources:
+    #         x_centre, y_centre, puissance = source["x"], source["y"], source["puissance"]
+    #         rayon = 0.0001  # 0.2 mm de diamètre = 0.1 mm de rayon
+
+    #         
+    #         i_centre = int(x_centre / self.dimensionsElementFinie["dX"])
+    #         j_centre = int(y_centre / self.dimensionsElementFinie["dY"])
+
+    #         
+    #         for i in range(max(0, i_centre - 2), min(self.matTemperature.shape[0], i_centre + 3)):
+    #             for j in range(max(0, j_centre - 2), min(self.matTemperature.shape[1], j_centre + 3)):
+    #                 x = i * self.dimensionsElementFinie["dX"]
+    #                 y = j * self.dimensionsElementFinie["dY"]
+
+    #                 
+    #                 if np.sqrt((x - x_centre) ** 2 + (y - y_centre) ** 2) <= rayon:
+    #                     aire_element = self.dimensionsElementFinie["AireDessu"]  # Aire d'un élément
+    #                     mat_puissance[i, j] += (puissance / (np.pi * rayon**2)) * aire_element  # W/m²
+
+    #     return mat_puissance
+
 
