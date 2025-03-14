@@ -2,6 +2,8 @@ import customtkinter as ctk
 from MAIN import lancer_simulation  
 from tkinter import messagebox
 from PIL import Image  
+from threading import Thread
+
 
 ctk.set_appearance_mode("dark")  
 ctk.set_default_color_theme("blue")  
@@ -10,7 +12,7 @@ class SimulationInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Simulation Thermique")
-        self.geometry("700x600")
+        self.geometry("1100x600")
 
         # Définition des paramètres par section
         self.thermistances = {
@@ -26,12 +28,12 @@ class SimulationInterface(ctk.CTk):
 
         self.plaque = {
             "Dimension_x_plaque": "0.11875", "Dimension_y_plaque": "0.062",
-            "Dimension_z_plaque": "0.002", "Coéfficient_convection": "15",
+            "Dimension_z_plaque": "0.002", "Coéfficient_convection": "14",
             "Température_initiale": "24"
         }
 
         self.proprietes_materiau = {
-            "Conductivité_thermique": "205", "Densité": "2700",
+            "Conductivité_thermique": "180", "Densité": "2700",
             "Capacité_thermique": "900"
         }
 
@@ -40,12 +42,23 @@ class SimulationInterface(ctk.CTk):
             "Temps_simulation_(s)": "1600",
             "Position_x_perturbation": "0.05",  # Nouveau champ pour la position X
             "Position_y_perturbation": "0.03",  # Nouveau champ pour la position Y
-            "Puissance_perturbation_(W)": "0.5"   # Nouveau champ pour la puissance thermique
+            "Puissance_perturbation_(W)": "0.3"   # Nouveau champ pour la puissance thermique
         }
 
 
         # Créer les widgets
         self.create_widgets()
+
+        ###Loading bar
+        # Create a label
+        self.label = ctk.CTkLabel(self, text="En attente de simulation", font=("Arial", 14))
+        self.label.grid(row=1, column=4, pady=5, padx=20, sticky="ew")
+
+        # Create the progress bar
+        self.progress_bar = ctk.CTkProgressBar(self, orientation="horizontal")
+        self.progress_bar.grid(row=2, column=4, pady=5, padx=20, sticky="ew")
+        self.progress_bar.set(0)  # Initialize at 0%
+
 
     def ajouter_image(self):
         """Ajoute une image explicative sous les paramètres avec un titre"""
@@ -96,6 +109,12 @@ class SimulationInterface(ctk.CTk):
         if add_button:
             ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
+    def update_progress(self, progress):
+        """ Update the progress bar """
+        self.progress_bar.set(progress/100)
+        self.label.configure(text="Temps restant : [Estime par derivé]")
+
+
     def lancer_simulation_interface(self):
         """Récupère les paramètres et lance la simulation."""
         try:
@@ -113,7 +132,12 @@ class SimulationInterface(ctk.CTk):
             }]
             
             print("🟢 Paramètres récupérés :", params)
-            self.after(100, lambda: lancer_simulation(params))
+            #self.after(100, lambda: lancer_simulation(params))
+
+            
+            self.label.configure(text="Simulation en cours...")
+            thread = Thread(target=lancer_simulation, args=(params, self.update_progress), daemon=True)
+            thread.start()
 
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")

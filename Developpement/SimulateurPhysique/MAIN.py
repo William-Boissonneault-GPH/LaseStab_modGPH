@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 from PlaqueThermique import PlaqueThermique
-from ActuateurThermique import ActionneurThermique
+from ActuateurThermique import ActionneurThermiqueSIMPLE
 from thermistance import thermo
 from matplotlib.animation import FuncAnimation
 
-def lancer_simulation(params):
+def lancer_simulation(params, progressCallback):
     """Lance la simulation thermique avec les paramètres fournis par l'interface."""
     print("🟡 Début de la simulation...")
     # Récupération des paramètres depuis l'interface
@@ -37,7 +37,7 @@ def lancer_simulation(params):
 
     # Création de la plaque thermique avec les paramètres de l'interface
     PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), (k, rho, cp), h, (0.001, 0.001), T_init)
-    TecA = ActionneurThermique((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
+    TecA = ActionneurThermiqueSIMPLE((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
 
     # Création des thermorésistances avec les positions spécifiées par l'utilisateur
     thermo1 = thermo(position=(pos_x_thermo1, pos_y_thermo1), diamètre=0.008, épaisseur=0.001, plaque=PlaqueA)
@@ -47,29 +47,48 @@ def lancer_simulation(params):
     Thermistances = [thermo1, thermo2, thermo3]
 
     ### Simulation
-    TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)
+
+    #Pour actuateur complexe
+    #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
+
+    #Pour actuateur SIMPLE
+    TecA.updateMatQTECCourrant(echelonCourant)
 
     totalTime = totalTime
-    num_frames = 580000
-    dTime = totalTime / num_frames
+    dTime = 1/363
+
+    num_frames = int(totalTime * (1/dTime))
+    ##Animation steps détermine la mémoire utilisé dans l'ordi!
+    #animationStep = 1600
     animationStep = 1600
 
     video = []
     temperatures = [[], [], []]
     time = []
 
-    for i in range(num_frames):
-        if i == num_frames / 2:
-            echelonCourant = echelonCourant
-        # Génération de la matrice de puissance thermique
-        mat_puissance = PlaqueA.generer_mat_puissance(sources_chaleur)
+    # Génération de la matrice de puissance thermique
+    mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
 
+    for i in range(num_frames):
+
+        if i == num_frames / 2:
+            #Effectue la fermeture à mi-chemin
+            echelonCourant = 0
         
         if i % animationStep == 0:
-            video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation, mat_puissance]))
-            TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)
+            print(f"La simulation est rendu à {round((i / num_frames)*100, 2)} %")
+            progressCallback(round((i / num_frames)*100, 2))
+            video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb]))
+
+            #Pour actuateur complex
+            #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
+
+            #Pour actuateur SIMPLE
+            TecA.updateMatQTECCourrant(echelonCourant)
+
+            #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
         else:
-            PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation, mat_puissance])
+            PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb])
         #if i % animationStep == 0:
             #video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation]))
             #TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)

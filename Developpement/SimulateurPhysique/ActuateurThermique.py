@@ -102,7 +102,7 @@ class ActionneurThermique:
     
     def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque):
         self.matElementBinaire = np.zeros_like(matPlaque)
-        self.matPerturbation = np.zeros_like(matPlaque)
+        self.matQTEC = np.zeros_like(matPlaque)
 
         ###(en x, en y) [m]
         self.dimensions = dimensions
@@ -130,9 +130,12 @@ class ActionneurThermique:
         self.couplage = 1
         pass
 
-    def updateMatPerturbation(self, courant, matTemperature, T_ambiant):
+    def updateMatQTEC(self, courant, matTemperature, T_ambiant):
+        
+
         ###Trouver température côté chaud TEC
         T_h = np.sum(matTemperature * self.matElementBinaire)/self.nombreElement
+    
         deltaT = T_h - T_ambiant
 
         if courant < 0:
@@ -142,8 +145,11 @@ class ActionneurThermique:
         
         if courant == 0:
             Q_tot = 0
-#print(f"Q du Tec {Q_tot}, T_h {T_h}")
-        self.matPerturbation = self.couplage* self.matElementBinaire * Q_tot / self.nombreElement
+        
+        self.matQTEC = self.couplage* self.matElementBinaire * Q_tot / self.nombreElement
+
+        
+        
         
 
 
@@ -153,7 +159,7 @@ class ActionneurThermiqueSIMPLE:
     
     def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque):
         self.matElementBinaire = np.zeros_like(matPlaque)
-        self.matPerturbation = np.zeros_like(matPlaque)
+        self.matQTEC = np.zeros_like(matPlaque)
 
         ###(en x, en y) [m]
         self.dimensions = dimensions
@@ -181,14 +187,14 @@ class ActionneurThermiqueSIMPLE:
         self.couplage = 1
         pass
 
-    def updateMatPerturbation(self, Puissance):
+    def updateMatQTEC(self, Puissance):
         ###Trouver température côté chaud TEC
         #print(f"Q du Tec {Q_tot}, T_h {T_h}")
-        self.matPerturbation = self.matElementBinaire * Puissance / self.nombreElement
+        self.matQTEC = self.matElementBinaire * Puissance / self.nombreElement
 
-    def updateMatPerturbationCourrant(self, courrant):
+    def updateMatQTECCourrant(self, courrant):
         ###Trouver température côté chaud TEC
         #print(f"Q du Tec {Q_tot}, T_h {T_h}")
         Puissance = 0.1493 * courrant**2 + 1.3291 * courrant
-        self.matPerturbation = self.matElementBinaire * Puissance / self.nombreElement
+        self.matQTEC = self.matElementBinaire * Puissance / self.nombreElement
         

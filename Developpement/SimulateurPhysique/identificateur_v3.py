@@ -227,14 +227,14 @@ def simulationMultiplesPuissanceTEC(courrantIndice, fileName, currentsPassed):
                 print(i)
                 for j, tec in enumerate(Tecs):
                     #tec.updateMatPerturbation(echelonCourant * PuissanceATester[j])
-                    tec.updateMatPerturbationCourrant(echelonCourant * PuissanceATester[j])
+                    tec.updateMatQTECCourrant(echelonCourant * PuissanceATester[j])
 
                 for j, thermistances in enumerate(thermos):
                     temperatures[j].append([thermistances[0].lire_temperature(), thermistances[1].lire_temperature(), thermistances[2].lire_temperature()])
                 time.append(i*dTime)
             else:
                 for j, plaque in enumerate(Plaques):
-                    plaque.propagationDunPasDeTemps(dTime, T_amb, [Tecs[j].matPerturbation])
+                    plaque.propagationDunPasDeTemps(dTime, T_amb, [Tecs[j].matQTEC])
             
 
     plt.plot(EssaisProto[courrantIndice]["time"][0:], EssaisProto[courrantIndice]["T3"][0:])

@@ -176,20 +176,20 @@ class PlaqueThermique():
     def recolterTempAUnePosition(self, pos):
         pass
 
-    def generer_mat_puissance(plaque, sources):
-        mat_puissance = np.zeros_like(plaque.matTemperature)
+    def generer_mat_pertub(self, sources):
+        mat_pertub = np.zeros_like(self.matTemperature)
         for source in sources:
             x, y, puissance = source["x"], source["y"], source["puissance"]
             
-            dX = plaque.dimensionsElementFinie["dX"]
-            dY = plaque.dimensionsElementFinie["dY"]
+            dX = self.dimensionsElementFinie["dX"]
+            dY = self.dimensionsElementFinie["dY"]
             
-            i, j = int(x / dX), int(y / dY)  
+            indice_x, indice_j = int(x / dX), int(y / dY)
             
-            # ajouter la puissance au bon emplacement en W/m2
-            mat_puissance[i, j] += puissance / (dX * dY)  
+            # ajouter la puissance au bon emplacement en W/element
+            mat_pertub[indice_j, indice_x] += puissance
 
-        return mat_puissance
+        return mat_pertub
     
     import numpy as np
 
