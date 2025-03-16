@@ -17,11 +17,11 @@ volatile int PWM_commande = 127;
 
 
 //Température Ambiante
-const float Tamb = 24.0;
+const float Tamb = 23.5;
 const float TempMax = 30.0;
 const float TempMin = 20.0;
-volatile float T_vise = 24.0;
-volatile float T_asserv = 24.0;  //Pour anti wind-up
+volatile float T_vise = 23.5;
+volatile float T_asserv = 23.5;  //Pour anti wind-up
 
 ////Lecture de température
 // Résistance pull-up et constante de la thermistance
@@ -136,7 +136,7 @@ float estimateurT3() {
   float GT1T3[6] = {0.0, 0.00019425, 0.00019111, 1.0, -1.9517, 0.9522};
   float GT2T3[4] = {0.0, 0.0303, 1.0, -0.9655};
 
-  float alpha = 0.3;
+  float alpha = 0.5;
   //float alpha = 0.5;
   float beta = 1.0 - alpha; 
 
@@ -169,7 +169,6 @@ float estimateurT3() {
 
 float traduireTemperatureC(int adcValue) {
   // ADC vers v_in (dans pins)
-
   float V_in = (adcValue * 5.0) / 1023.0;
 
   // Calculer V_out_diviseur (tension sortant diviseur):
@@ -288,7 +287,8 @@ ISR(TIMER1_COMPA_vect) {
   int adcValue3 = analogRead(THERMISTOR3_PIN);
 
   T1[0] = traduireTemperatureC(adcValue1);
-  T2[0] = traduireTemperatureC(adcValue2);
+  //Ajsutement a l ouverture
+  T2[0] = traduireTemperatureC(adcValue2) - 0.3;
   T3[0] = traduireTemperatureC(adcValue3);
 
   //5. Estimer T3

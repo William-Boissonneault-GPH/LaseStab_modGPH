@@ -11,7 +11,7 @@ csv_writer = None
 csv_file = None
 
 # Define serial port and parameters
-SERIAL_PORT = 'COM13'  # Update this with your Arduino's serial port
+SERIAL_PORT = 'COM14'  # Update this with your Arduino's serial port
 BAUD_RATE = 9600
 arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 
@@ -46,7 +46,7 @@ scatter_temp4 = ax.scatter([], [], label='T3_mesure', s=1)
 ax.set_xlim(0, 100)  # Time window for the plot (can be adjusted)
 ax.set_ylim(12,38)  # Data range from analogRead() (0 to 1023 for most Arduino boards)
 ax.legend()
-
+ax.grid()
 # Function to update the plot and log data
 def update_data(frame):
     global time_data, temp1_data, temp2_data, temp3_data, temp4_data
@@ -71,7 +71,7 @@ def update_data(frame):
                     csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint])
                 
                 # Keep data within the plot window limit
-                if len(time_data) > 100:
+                if len(time_data) > 400:
                     time_data = time_data[1:]
                     temp1_data = temp1_data[1:]
                     temp2_data = temp2_data[1:]
