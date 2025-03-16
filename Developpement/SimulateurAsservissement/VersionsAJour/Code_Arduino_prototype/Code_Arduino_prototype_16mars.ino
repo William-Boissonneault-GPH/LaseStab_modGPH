@@ -49,6 +49,8 @@ volatile float T3[3] = {Tamb, Tamb, Tamb};
 volatile float T3_EST[3] = {Tamb, Tamb, Tamb};
 
 float clock = 0;
+volatile int clockTick = 0;
+float e;
 //Regulateur temporaire
 //volatile float REG[6] = {1.0, -1.9104, 0.9115, 1.0, -1.9257, 0.9257};
 volatile float REG[6] = {1.0, -1.8995, 0.901, 1.0, -1.913, 0.913};
@@ -65,29 +67,28 @@ volatile float COMMANDE[3] = {0.0, 0.0, 0.0};
 float DELTAT3_based_T2[3] = {0.0, 0.0, 0.0};
 float DELTAT3_based_T1[3] = {0.0, 0.0, 0.0};
 
-
 void calculerMeilleurRegulateur(float consigne) {
   //Calculer quel régulateur en fonction de la consigne!
   
   //pour l'instant régulateur fixe
-  float num0 = 1.0;
+  //float num0 = 1.0;
   //float num1 = -1.9104;
   //float num2 = 0.9115;
-  float num1 = -1.8995;
-  float num2 = 0.901;
+  //float num1 = -1.8995;
+  //float num2 = 0.901;
 
-  float deno0 = 1.0;
+  //float deno0 = 1.0;
   //float deno1 = -1.9257;
   //float deno2 = 0.9257;
-  float deno1 = -1.913;
-  float deno2 = 0.913;
+  //float deno1 = -1.913;
+  //float deno2 = 0.913;
 
-  REG[0] = num0;
-  REG[1] = num1;
-  REG[2] = num2;
-  REG[3] = deno0;
-  REG[4] = deno1;
-  REG[5] = deno2;
+  //REG[0] = num0;
+  //REG[1] = num1;
+  //REG[2] = num2;
+  //REG[3] = deno0;
+  //REG[4] = deno1;
+  //REG[5] = deno2;
 };
 
 float Comparateur(float T_consigne, float T3_asserv[]){
@@ -96,13 +97,7 @@ float Comparateur(float T_consigne, float T3_asserv[]){
   //Début d'une nouvelle boucle, repousse toute les valeurs!
   shiftZ(ERREUR);
   shiftZ(COMMANDE);
-  shiftZ(T1);
-  shiftZ(T2);
-  shiftZ(T3);
-  shiftZ(T3_EST);
-  shiftZ(DELTAT3_based_T2);
-  shiftZ(DELTAT3_based_T1);
-
+  
   ERREUR[0] = erreur;
   return erreur;
 };
@@ -136,10 +131,10 @@ float recalculerEstimateurAjuster() {
 float estimateurT3() {
   //float GT1T3[6] = {0.0, 0.0031, 0.0028, 1.0, -1.7751, 0.7841};
   //float GT2T3[4] = {0.0, 0.0833, 1.0, -0.9024};
-  float GT1T3[6] = {0.0, 0.00296, 0.002773, 1.0, -1.814, 0.8221};
-  float GT2T3[4] = {0.0, 0.1149, 1.0, -0.869};
+  float GT1T3[6] = {0.0, 0.00019425, 0.00019111, 1.0, -1.9517, 0.9522};
+  float GT2T3[4] = {0.0, 0.0303, 1.0, -0.9655};
 
-  float alpha = 0.1;
+  float alpha = 0.3;
   //float alpha = 0.5;
   float beta = 1.0 - alpha; 
 
@@ -221,7 +216,9 @@ void setup() {
   // For a 16 MHz clock with 1024 prescaler:
   //   Counts per second = 16,000,000 / 1024 ≈ 15625.
   // For 2 s period, compare value = 15625 * 0.01 ≈ 156.25, so use OCR1A = 156.
-  OCR1A  = 31250;          
+
+  //timer à chaque 0.5sec - regul à chaque 4 coups
+  OCR1A  = 7813;          
   TCCR1B |= (1 << WGM12);              // CTC mode: Clear Timer on Compare Match
   TCCR1B |= (1 << CS12) | (1 << CS10);   // Prescaler 1024
   TIMSK1 |= (1 << OCIE1A);               // Enable compare-match interrupt
@@ -247,9 +244,10 @@ void loop() {
 }
 
 ISR(TIMER1_COMPA_vect) {
-  clock += 2;
+  clock += 0.5;
+  clockTick += 1;
 
-  //Anti wind-up
+  //Limiteur
   T_asserv = T_vise;
   if (T_vise > TempMax){
     T_asserv = TempMax;
@@ -257,30 +255,30 @@ ISR(TIMER1_COMPA_vect) {
     T_asserv = TempMin;
   } 
 
-  float e;
-  //1. Comparateur et shift de mémoire, ERREUR OK
-  if (Asserv_T3EST_False_T3_True == 0){
-    e = Comparateur(T_asserv, T3_EST);
-  }else{
-    e = Comparateur(T_asserv, T3);
+  if (clockTick == 4){
+    //1. Comparateur et shift de mémoire, ERREUR OK
+    if (Asserv_T3EST_False_T3_True == 0){
+      e = Comparateur(T_asserv, T3_EST);
+    }else{
+      e = Comparateur(T_asserv, T3);
+    }
+    
+    //2. Regulateur, COMMANDE OK
+    float c = Regulateur();
+
+    //3. Changer la commande
+    int PWM_commande = CommandeVersPWM(c);
+    analogWrite(PWM_OUTPUT_PIN, PWM_commande);
+    //analogWrite(PWM_OUTPUT_PIN, 127);
+    clockTick = 0;
   }
 
-  Serial.print("erreur:");
-  Serial.print(e);
-
-  //2. Regulateur, COMMANDE OK
-  float c = Regulateur();
-
-  //3. Changer la commande
-  int PWM_commande = CommandeVersPWM(c);
-  analogWrite(PWM_OUTPUT_PIN, PWM_commande);
-  //analogWrite(PWM_OUTPUT_PIN, 127);
-
-  Serial.print(",  PWM comande :");
-  Serial.print(PWM_commande);
-  Serial.print(", Setpoint :");
-  Serial.println(T_vise);
-
+  shiftZ(T1);
+  shiftZ(T2);
+  shiftZ(T3);
+  shiftZ(T3_EST);
+  shiftZ(DELTAT3_based_T2);
+  shiftZ(DELTAT3_based_T1);
 
   //4. Mesurer T
   int adcValue1 = analogRead(THERMISTOR1_PIN);
@@ -304,4 +302,9 @@ ISR(TIMER1_COMPA_vect) {
   Serial.print(t3_estime);
   Serial.print(",");
   Serial.println(T3[0]);
+  Serial.print(e);
+  Serial.print(",");
+  Serial.print(PWM_commande);
+  Serial.print(",");
+  Serial.println(T_vise);
 }
