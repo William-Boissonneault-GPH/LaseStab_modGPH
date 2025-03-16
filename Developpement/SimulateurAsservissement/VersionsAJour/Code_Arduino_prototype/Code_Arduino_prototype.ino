@@ -16,8 +16,8 @@ const int PWM_OUTPUT_PIN   = 5;  // PWM pin for analog-like output
 
 //Température Ambiante
 const float Tamb = 24.0;
-const float TempMax = 35.0;
-const float TempMin = 15.0;
+const float TempMax = 30.0;
+const float TempMin = 20.0;
 volatile float T_vise = 24.0;
 volatile float T_asserv = 24.0;  //Pour anti wind-up
 
@@ -50,7 +50,8 @@ volatile float T3_EST[3] = {Tamb, Tamb, Tamb};
 
 float clock = 0;
 //Regulateur temporaire
-volatile float REG[6] = {1.0, -1.9104, 0.9115, 1.0, -1.9257, 0.9257};
+//volatile float REG[6] = {1.0, -1.9104, 0.9115, 1.0, -1.9257, 0.9257};
+volatile float REG[6] = {1.0, -1.8995, 0.901, 1.0, -1.913, 0.913};
 
 //Selection d'asservissement basé sur Estimé (0) ou sur T3 (1)
 volatile int Asserv_T3EST_False_T3_True = 0;
@@ -70,12 +71,16 @@ void calculerMeilleurRegulateur(float consigne) {
   
   //pour l'instant régulateur fixe
   float num0 = 1.0;
-  float num1 = -1.9104;
-  float num2 = 0.9115;
+  //float num1 = -1.9104;
+  //float num2 = 0.9115;
+  float num1 = -1.8995;
+  float num2 = 0.901;
 
   float deno0 = 1.0;
-  float deno1 = -1.9257;
-  float deno2 = 0.9257;
+  //float deno1 = -1.9257;
+  //float deno2 = 0.9257;
+  float deno1 = -1.913;
+  float deno2 = 0.913;
 
   REG[0] = num0;
   REG[1] = num1;
@@ -103,7 +108,8 @@ float Comparateur(float T_consigne, float T3_asserv[]){
 };
 
 float Regulateur() {
-  float GainREG = 0.5;
+  float GainREG = 0.4;
+  //float GainREG = 0.5;
   //Commande = Amperage voulu
   float Commande = REG[0]*ERREUR[0]*GainREG;
   Commande += REG[1]*ERREUR[1]*GainREG;
@@ -128,10 +134,13 @@ float recalculerEstimateurAjuster() {
 };
 
 float estimateurT3() {
-  float GT1T3[6] = {0.0, 0.0031, 0.0028, 1.0, -1.7751, 0.7841};
-  float GT2T3[4] = {0.0, 0.0833, 1.0, -0.9024};
+  //float GT1T3[6] = {0.0, 0.0031, 0.0028, 1.0, -1.7751, 0.7841};
+  //float GT2T3[4] = {0.0, 0.0833, 1.0, -0.9024};
+  float GT1T3[6] = {0.0, 0.00296, 0.002773, 1.0, -1.814, 0.8221};
+  float GT2T3[4] = {0.0, 0.1149, 1.0, -0.869};
 
-  float alpha = 0.5;
+  float alpha = 0.1;
+  //float alpha = 0.5;
   float beta = 1.0 - alpha; 
 
   ///DELTAT3_based_T2
