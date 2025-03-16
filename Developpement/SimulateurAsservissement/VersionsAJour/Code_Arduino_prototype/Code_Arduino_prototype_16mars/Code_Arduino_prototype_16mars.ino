@@ -13,6 +13,8 @@ const int THERMISTOR2_PIN = A1;
 const int THERMISTOR3_PIN = A2;
 const int PWM_OUTPUT_PIN   = 5;  // PWM pin for analog-like output
 
+volatile int PWM_commande = 127;
+
 
 //Température Ambiante
 const float Tamb = 24.0;
@@ -240,7 +242,7 @@ void loop() {
     }
   }
 
-  delay(500);  // 1 second delay for readability
+  delay(100);  // 1 second delay for readability
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -267,7 +269,7 @@ ISR(TIMER1_COMPA_vect) {
     float c = Regulateur();
 
     //3. Changer la commande
-    int PWM_commande = CommandeVersPWM(c);
+    PWM_commande = CommandeVersPWM(c);
     analogWrite(PWM_OUTPUT_PIN, PWM_commande);
     //analogWrite(PWM_OUTPUT_PIN, 127);
     clockTick = 0;
@@ -301,7 +303,8 @@ ISR(TIMER1_COMPA_vect) {
   Serial.print(",");
   Serial.print(t3_estime);
   Serial.print(",");
-  Serial.println(T3[0]);
+  Serial.print(T3[0]);
+  Serial.print(",");
   Serial.print(e);
   Serial.print(",");
   Serial.print(PWM_commande);

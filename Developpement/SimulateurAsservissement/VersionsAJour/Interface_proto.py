@@ -11,7 +11,7 @@ csv_writer = None
 csv_file = None
 
 # Define serial port and parameters
-SERIAL_PORT = 'COM14'  # Update this with your Arduino's serial port
+SERIAL_PORT = 'COM13'  # Update this with your Arduino's serial port
 BAUD_RATE = 9600
 arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 
@@ -39,10 +39,10 @@ lastSetpoint = 999
 
 # Create a plot for real-time data
 fig, ax = plt.subplots()
-scatter_temp1 = ax.scatter([], [], label='T1_mesure')
-scatter_temp2 = ax.scatter([], [], label='T2_mesure')
-scatter_temp3 = ax.scatter([], [], label='T3_estimr')
-scatter_temp4 = ax.scatter([], [], label='T3_mesure')
+scatter_temp1 = ax.scatter([], [], label='T1_mesure', s=1)
+scatter_temp2 = ax.scatter([], [], label='T2_mesure', s=1)
+scatter_temp3 = ax.scatter([], [], label='T3_estimr', s=1)
+scatter_temp4 = ax.scatter([], [], label='T3_mesure', s=1)
 ax.set_xlim(0, 100)  # Time window for the plot (can be adjusted)
 ax.set_ylim(12,38)  # Data range from analogRead() (0 to 1023 for most Arduino boards)
 ax.legend()
@@ -57,39 +57,29 @@ def update_data(frame):
         data = arduino.readline().decode('utf-8').strip()
         print(data)
         if data:
-            if data[0]=="e":
-                try:
-                    parts = data.split(', ')
-                    
-                    lastError = float(parts[0].split(':')[1])
-                    lastCommand = int(parts[1].split(':')[1])
-                    lastSetpoint = float(parts[2].split(':')[1])
-                except ValueError:
-                    pass
-            else:
-                try:
-                    time_str, temp1, temp2, temp3, temp4 = data.split(',')
-                    current_time = time.time() - start_time  # Calculate elapsed time
-                    time_data.append(current_time)
-                    temp1_data.append(float(temp1))
-                    temp2_data.append(float(temp2))
-                    temp3_data.append(float(temp3))
-                    temp4_data.append(float(temp4))
+            try:
+                time_str, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint = data.split(',')
+                current_time = time.time() - start_time  # Calculate elapsed time
+                time_data.append(current_time)
+                temp1_data.append(float(temp1))
+                temp2_data.append(float(temp2))
+                temp3_data.append(float(temp3))
+                temp4_data.append(float(temp4))
 
-                    # Log data to CSV
-                    if csv_writer:
-                        csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint])
-                    
-                    # Keep data within the plot window limit
-                    if len(time_data) > 100:
-                        time_data = time_data[1:]
-                        temp1_data = temp1_data[1:]
-                        temp2_data = temp2_data[1:]
-                        temp3_data = temp3_data[1:]
-                        temp4_data = temp4_data[1:]
+                # Log data to CSV
+                if csv_writer:
+                    csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint])
+                
+                # Keep data within the plot window limit
+                if len(time_data) > 100:
+                    time_data = time_data[1:]
+                    temp1_data = temp1_data[1:]
+                    temp2_data = temp2_data[1:]
+                    temp3_data = temp3_data[1:]
+                    temp4_data = temp4_data[1:]
 
-                except ValueError:
-                    raise  # Ignore invalid data
+            except ValueError:
+                raise  # Ignore invalid data
 
     # Ensure that offsets is a 2D array: we create a list of (time, temp) pairs
     scatter_temp1.set_offsets(np.column_stack((time_data, temp1_data)))
@@ -152,7 +142,7 @@ save_button.pack(padx=10, pady=10)
 
 # Start real-time plot updating
 start_time = time.time()  # Start time for plotting
-ani = FuncAnimation(fig, update_data, interval=100)
+ani = FuncAnimation(fig, update_data, interval=100, cache_frame_data=False)
 
 # Start the Tkinter GUI
 tkinter_plot = plt.gcf().canvas.get_tk_widget()
