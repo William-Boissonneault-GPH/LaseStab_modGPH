@@ -199,6 +199,7 @@ class ActionneurThermiqueSIMPLE:
     def updateMatQTECCourrant(self, courrant):
         ###Trouver température côté chaud TEC
         #print(f"Q du Tec {Q_tot}, T_h {T_h}")
+        #print(self.coeff_a)
         Puissance = self.coeff_a * courrant**2 + self.coeff_b * courrant
         self.matQTEC = self.matElementBinaire * Puissance / self.nombreElement
         

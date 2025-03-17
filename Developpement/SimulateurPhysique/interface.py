@@ -25,8 +25,8 @@ class SimulationInterface(ctk.CTk):
         self.tec = {
             "Position_x_TEC": "0.096", "Position_y_TEC": "0.031",
             "Dimension_x_TEC": "0.015", "Dimension_y_TEC": "0.0156",
-            "Coefficient_couplage_a": "0.1493",  # Nouveau coefficient a
-            "Coefficient_couplage_b": "1.3291"   # Nouveau coefficient b
+            "Coefficient_couplage_a": "0.1493",  
+            "Coefficient_couplage_b": "1.3291"
         }
 
         self.plaque = {
