@@ -1,3 +1,4 @@
+import os
 import customtkinter as ctk
 from MAIN import lancer_simulation  
 from tkinter import messagebox
@@ -23,7 +24,9 @@ class SimulationInterface(ctk.CTk):
 
         self.tec = {
             "Position_x_TEC": "0.096", "Position_y_TEC": "0.031",
-            "Dimension_x_TEC": "0.015", "Dimension_y_TEC": "0.0156"
+            "Dimension_x_TEC": "0.015", "Dimension_y_TEC": "0.0156",
+            "Coefficient_couplage_a": "0.1493",  # Nouveau coefficient a
+            "Coefficient_couplage_b": "1.3291"   # Nouveau coefficient b
         }
 
         self.plaque = {
@@ -43,8 +46,8 @@ class SimulationInterface(ctk.CTk):
             "Position_x_perturbation": "0.05",  # Nouveau champ pour la position X
             "Position_y_perturbation": "0.03",  # Nouveau champ pour la position Y
             "Puissance_perturbation_(W)": "0.3"   # Nouveau champ pour la puissance thermique
+            
         }
-
 
         # Créer les widgets
         self.create_widgets()
@@ -59,12 +62,11 @@ class SimulationInterface(ctk.CTk):
         self.progress_bar.grid(row=2, column=4, pady=5, padx=20, sticky="ew")
         self.progress_bar.set(0)  # Initialize at 0%
 
-
     def ajouter_image(self):
         """Ajoute une image explicative sous les paramètres avec un titre"""
         try:
             # Chemin vers l'image
-            chemin_image = r"C:\Users\claud\OneDrive\Documents\rapport2 design2\Schéma_dimensions.png"
+            chemin_image = os.path.join(os.path.dirname(__file__), "schémadimensions.png")
 
             # Créer un cadre pour l'image et le titre
             frame_image = ctk.CTkFrame(self)
@@ -75,13 +77,12 @@ class SimulationInterface(ctk.CTk):
             titre.pack(pady=(10, 5))
 
             # Charger et afficher l’image
-            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(710, 440))  # Augmente la taille
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(670, 380))  # Augmente la taille
             label_image = ctk.CTkLabel(frame_image, image=image, text="")
             label_image.pack(pady=5)
 
         except Exception as e:
             print(f"Erreur lors du chargement de l'image : {e}")
-
 
     def create_widgets(self):
         """Crée et place les widgets dans l'interface en sections"""
@@ -114,7 +115,6 @@ class SimulationInterface(ctk.CTk):
         self.progress_bar.set(progress/100)
         self.label.configure(text="Temps restant : [Estime par derivé]")
 
-
     def lancer_simulation_interface(self):
         """Récupère les paramètres et lance la simulation."""
         try:
@@ -132,8 +132,6 @@ class SimulationInterface(ctk.CTk):
             }]
             
             print("🟢 Paramètres récupérés :", params)
-            #self.after(100, lambda: lancer_simulation(params))
-
             
             self.label.configure(text="Simulation en cours...")
             thread = Thread(target=lancer_simulation, args=(params, self.update_progress), daemon=True)
@@ -141,7 +139,6 @@ class SimulationInterface(ctk.CTk):
 
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
-
 
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""

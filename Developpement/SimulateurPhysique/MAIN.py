@@ -34,10 +34,12 @@ def lancer_simulation(params, progressCallback):
     pos_y_TEC = params["Position_y_TEC"]
     dim_x_TEC = params["Dimension_x_TEC"]
     dim_y_TEC = params["Dimension_y_TEC"]
+    coeff_a=params["Coefficient_couplage_a"],  # Ajout des coefficients
+    coeff_b=params["Coefficient_couplage_b"]
 
     # Création de la plaque thermique avec les paramètres de l'interface
     PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), (k, rho, cp), h, (0.001, 0.001), T_init)
-    TecA = ActionneurThermiqueSIMPLE((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie)
+    TecA = ActionneurThermiqueSIMPLE((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie, coeff_a, coeff_b)
 
     # Création des thermorésistances avec les positions spécifiées par l'utilisateur
     thermo1 = thermo(position=(pos_x_thermo1, pos_y_thermo1), diamètre=0.008, épaisseur=0.001, plaque=PlaqueA)

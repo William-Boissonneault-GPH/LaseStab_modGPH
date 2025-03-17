@@ -157,7 +157,11 @@ class ActionneurThermique:
 
 class ActionneurThermiqueSIMPLE:
     
-    def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque):
+    def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque, coeff_a, coeff_b):
+
+        self.coeff_a = coeff_a  
+        self.coeff_b = coeff_b
+
         self.matElementBinaire = np.zeros_like(matPlaque)
         self.matQTEC = np.zeros_like(matPlaque)
 
@@ -195,6 +199,6 @@ class ActionneurThermiqueSIMPLE:
     def updateMatQTECCourrant(self, courrant):
         ###Trouver température côté chaud TEC
         #print(f"Q du Tec {Q_tot}, T_h {T_h}")
-        Puissance = 0.1493 * courrant**2 + 1.3291 * courrant
+        Puissance = self.coeff_a * courrant**2 + self.coeff_b * courrant
         self.matQTEC = self.matElementBinaire * Puissance / self.nombreElement
         
