@@ -143,6 +143,18 @@ class SimulationInterface(ctk.CTk):
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""
         return {key: float(var.get()) for key, var in param_dict.items()}
+    
+    # def get_values(self, param_dict):
+    #     """Convertit les valeurs des dictionnaires en float en gérant les erreurs."""
+    #     converted = {}
+    #     for key, var in param_dict.items():
+    #         try:
+    #             converted[key] = float(var.get())
+    #         except ValueError:
+    #             print(f"Erreur : Impossible de convertir {key} en float ({var.get()})")
+    #             converted[key] = None  # Ou une valeur par défaut
+    #     return converted
+
 
 if __name__ == "__main__":
     app = SimulationInterface()
