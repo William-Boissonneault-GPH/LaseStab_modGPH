@@ -1,0 +1,31 @@
+{
+    "Position_x_thermo1": 0.10475,
+    "Position_y_thermo1": 0.031,
+    "Position_x_thermo2": 0.05835,
+    "Position_y_thermo2": 0.031,
+    "Position_x_thermo3": 0.01225,
+    "Position_y_thermo3": 0.031,
+    "Position_x_TEC": 0.096,
+    "Position_y_TEC": 0.031,
+    "Dimension_x_TEC": 0.015,
+    "Dimension_y_TEC": 0.0156,
+    "Coefficient_couplage_a": 0.1493,
+    "Coefficient_couplage_b": 1.3291,
+    "Dimension_x_plaque": 0.11875,
+    "Dimension_y_plaque": 0.062,
+    "Dimension_z_plaque": 0.0016,
+    "Co\u00e9fficient_convection": 14.0,
+    "Temp\u00e9rature_initiale": 22.0,
+    "Conductivit\u00e9_thermique": 180.0,
+    "Densit\u00e9": 2700.0,
+    "Capacit\u00e9_thermique": 900.0,
+    "\u00c9chelon_courant_(A)": 1.0,
+    "Temps_simulation_(s)": 100.0,
+    "Sources_chaleur": [
+        {
+            "x": 0.05,
+            "y": 0.03,
+            "puissance": 0.3
+        }
+    ]
+}

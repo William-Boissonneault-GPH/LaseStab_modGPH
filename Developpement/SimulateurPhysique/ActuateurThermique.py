@@ -158,7 +158,7 @@ class ActionneurThermique:
 class ActionneurThermiqueSIMPLE:
     
     def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque, coeff_a, coeff_b):
-        self.coeff_a = coeff_a  
+        self.coeff_a = coeff_a
         self.coeff_b = coeff_b
 
         self.matElementBinaire = np.zeros_like(matPlaque)
@@ -201,6 +201,6 @@ class ActionneurThermiqueSIMPLE:
         #print(self.coeff_a)
         #print(courrant)
 
-        Puissance = float(self.coeff_a[0]) * courrant**2 + self.coeff_b * courrant
+        Puissance = self.coeff_a * courrant**2 + self.coeff_b * courrant
         self.matQTEC = self.matElementBinaire * Puissance / self.nombreElement
         

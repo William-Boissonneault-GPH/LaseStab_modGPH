@@ -18,9 +18,9 @@ def lancer_simulation(params, progressCallback):
     k = params["Conductivité_thermique"]
     rho = params["Densité"]
     T_init = params["Température_initiale"]
-    echelonCourant = float(params["Échelon_courant_(A)"])
+    echelonCourant = params["Échelon_courant_(A)"]
     totalTime= params["Temps_simulation_(s)"]
-    sources_chaleur = params["Sources_chaleur"]  
+    sources_chaleur = params["Sources_chaleur"]
 
 
     pos_x_thermo1 = params["Position_x_thermo1"]
@@ -34,8 +34,8 @@ def lancer_simulation(params, progressCallback):
     pos_y_TEC = params["Position_y_TEC"]
     dim_x_TEC = params["Dimension_x_TEC"]
     dim_y_TEC = params["Dimension_y_TEC"]
-    coeff_a= float(params["Coefficient_couplage_a"]),  # Ajout des coefficients
-    coeff_b=float(params["Coefficient_couplage_b"])
+    coeff_a= params["Coefficient_couplage_a"]  # Ajout des coefficients
+    coeff_b= params["Coefficient_couplage_b"]
 
     # Création de la plaque thermique avec les paramètres de l'interface
     PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), (k, rho, cp), h, (0.001, 0.001), T_init)

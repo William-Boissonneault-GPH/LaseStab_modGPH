@@ -1,9 +1,11 @@
 import os
+import json
 import customtkinter as ctk
 from MAIN import lancer_simulation  
 from tkinter import messagebox
 from PIL import Image  
 from threading import Thread
+from tkinter import filedialog
 
 
 ctk.set_appearance_mode("dark")  
@@ -93,11 +95,14 @@ class SimulationInterface(ctk.CTk):
         self.create_section("Détails de la simulation", self.details_simulation, 4, add_button=True)
         self.ajouter_image()
 
+        
+
+
     def create_section(self, title, parameters, col, add_button=False):
         """Crée une section avec un titre et des entrées pour les paramètres."""
         frame = ctk.CTkFrame(self)
         frame.grid(row=0, column=col, padx=10, pady=10, sticky="n")
-
+        ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
         ctk.CTkLabel(frame, text=title, font=("Arial", 14, "bold")).pack(pady=5)
         
         for key, default_value in parameters.items():
@@ -124,6 +129,8 @@ class SimulationInterface(ctk.CTk):
                     **self.get_values(self.proprietes_materiau),
                     **self.get_values(self.details_simulation)}
             
+            self.sauvegarder_parametres()
+
             # Transformation des valeurs de perturbation en une liste de sources
             params["Sources_chaleur"] = [{
                 "x": params.pop("Position_x_perturbation"),
@@ -131,7 +138,7 @@ class SimulationInterface(ctk.CTk):
                 "puissance": params.pop("Puissance_perturbation_(W)")
             }]
             
-            print("🟢 Paramètres récupérés :", params)
+            print("Paramètres récupérés :", params)
             
             self.label.configure(text="Simulation en cours...")
             thread = Thread(target=lancer_simulation, args=(params, self.update_progress), daemon=True)
@@ -143,17 +150,54 @@ class SimulationInterface(ctk.CTk):
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""
         return {key: float(var.get()) for key, var in param_dict.items()}
-    
-    # def get_values(self, param_dict):
-    #     """Convertit les valeurs des dictionnaires en float en gérant les erreurs."""
-    #     converted = {}
-    #     for key, var in param_dict.items():
-    #         try:
-    #             converted[key] = float(var.get())
-    #         except ValueError:
-    #             print(f"Erreur : Impossible de convertir {key} en float ({var.get()})")
-    #             converted[key] = None  # Ou une valeur par défaut
-    #     return converted
+
+    def sauvegarder_parametres(self):
+        """Sauvegarde les paramètres actuels dans un fichier JSON."""
+        params = {**self.get_values(self.thermistances),
+                **self.get_values(self.tec),
+                **self.get_values(self.plaque),
+                **self.get_values(self.proprietes_materiau),
+                **self.get_values(self.details_simulation)}
+
+        params["Sources_chaleur"] = [{
+            "x": params.pop("Position_x_perturbation"),
+            "y": params.pop("Position_y_perturbation"),
+            "puissance": params.pop("Puissance_perturbation_(W)")
+        }]
+
+        with open("derniere_simulation.json", "w") as f:
+            json.dump(params, f, indent=4)
+        
+        print("Paramètres sauvegardés dans 'derniere_simulation.json'")
+
+
+    def charger_parametres(self):
+        """Charge un fichier JSON et remplit les entrées de l'interface avec ces valeurs."""
+        fichier = filedialog.askopenfilename(filetypes=[("Fichiers JSON", "*.json")])
+        if not fichier:
+            return  
+
+        try:
+            with open(fichier, "r") as f:
+                params = json.load(f)
+
+            # Répartir les valeurs dans les dictionnaires de l'interface
+            for key, var in {**self.thermistances, **self.tec, **self.plaque, **self.proprietes_materiau, **self.details_simulation}.items():
+                if key in params:
+                    var.set(str(params[key]))  # Remettre sous forme de string pour les champs d'entrée
+
+            # Remettre les valeurs des perturbations
+            if "Sources_chaleur" in params and len(params["Sources_chaleur"]) > 0:
+                source = params["Sources_chaleur"][0]
+                self.details_simulation["Position_x_perturbation"].set(str(source["x"]))
+                self.details_simulation["Position_y_perturbation"].set(str(source["y"]))
+                self.details_simulation["Puissance_perturbation_(W)"].set(str(source["puissance"]))
+
+
+            print("Paramètres chargés avec succès depuis", fichier)
+
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Impossible de charger le fichier JSON.\n{e}")
 
 
 if __name__ == "__main__":
