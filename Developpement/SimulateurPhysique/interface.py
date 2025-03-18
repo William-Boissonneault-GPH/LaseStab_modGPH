@@ -79,7 +79,7 @@ class SimulationInterface(ctk.CTk):
             titre.pack(pady=(10, 5))
 
             # Charger et afficher l’image
-            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(670, 380))  # Augmente la taille
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(630, 360))  # Augmente la taille
             label_image = ctk.CTkLabel(frame_image, image=image, text="")
             label_image.pack(pady=5)
 
