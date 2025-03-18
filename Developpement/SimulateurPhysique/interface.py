@@ -45,9 +45,9 @@ class SimulationInterface(ctk.CTk):
         self.details_simulation = {
             "Échelon_courant_(A)": "-0.7",
             "Temps_simulation_(s)": "1600",
-            "Position_x_perturbation": "0.05",  # Nouveau champ pour la position X
-            "Position_y_perturbation": "0.03",  # Nouveau champ pour la position Y
-            "Puissance_perturbation_(W)": "0.3"   # Nouveau champ pour la puissance thermique
+            "Position_x_perturbation": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
+            "Position_y_perturbation": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
+            "Puissance_perturbation_(W)": ctk.StringVar(value="0.3")   # Nouveau champ pour la puissance thermique
             
         }
 
@@ -95,14 +95,12 @@ class SimulationInterface(ctk.CTk):
         self.create_section("Détails de la simulation", self.details_simulation, 4, add_button=True)
         self.ajouter_image()
 
-        
-
 
     def create_section(self, title, parameters, col, add_button=False):
         """Crée une section avec un titre et des entrées pour les paramètres."""
         frame = ctk.CTkFrame(self)
         frame.grid(row=0, column=col, padx=10, pady=10, sticky="n")
-        ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
+
         ctk.CTkLabel(frame, text=title, font=("Arial", 14, "bold")).pack(pady=5)
         
         for key, default_value in parameters.items():
@@ -113,6 +111,7 @@ class SimulationInterface(ctk.CTk):
 
         # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
         if add_button:
+            ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
             ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
     def update_progress(self, progress):

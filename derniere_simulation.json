@@ -23,9 +23,9 @@
     "Temps_simulation_(s)": 100.0,
     "Sources_chaleur": [
         {
-            "x": 0.05,
-            "y": 0.03,
-            "puissance": 0.3
+            "x": 0.02,
+            "y": 0.06,
+            "puissance": 1.0
         }
     ]
 }
