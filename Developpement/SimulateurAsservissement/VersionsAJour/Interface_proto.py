@@ -212,6 +212,17 @@ def send_REG_values():
     arduino.write(reg_command.encode())
     messagebox.showinfo("Succès", "Les nouvelles valeurs de REG ont été envoyées.")
 
+def reset_REG_values():
+    """Réinitialise les coefficients du régulateur aux valeurs par défaut"""
+    for i in range(6):
+        entries[f"reg_{i}"].delete(0, tk.END)  # Efface la valeur actuelle
+        entries[f"reg_{i}"].insert(0, str(default_REG_values[i]))  # Insère la valeur par défaut
+    
+    # Envoyer les valeurs par défaut à l'Arduino
+    reg_command = f"REGVALUES:{','.join(map(str, default_REG_values))}\n"
+    arduino.write(reg_command.encode())
+    
+    messagebox.showinfo("Info", "Les valeurs du régulateur ont été réinitialisées aux valeurs par défaut.")
 
 # Function to open file dialog and select where to save the CSV file
 def save_csv():
@@ -287,13 +298,18 @@ for i, label_text in enumerate(reg_labels):
 send_button = tk.Button(frame_reg, text="Appliquer les réglages", font=("Times New Roman", 20, "bold"), command=send_REG_values, width=20, bg="blue", fg="white")
 send_button.pack(pady=30)
 
+# 🔄 Bouton pour réinitialiser les valeurs du régulateur
+reset_button = tk.Button(frame_reg, text="Réinitialiser les réglages", font=("Times New Roman", 20, "bold"), 
+                         command=reset_REG_values, width=20, bg="gray", fg="white")
+reset_button.pack(pady=20)
+
 # 📌 Bouton d’activation du régulateur en bas, bien centré
 bottom_frame = tk.Frame(page_regulateur)
 bottom_frame.pack(side="bottom", pady=30)  # positionnement en bas de la page
 
 # 🔹 Configuration du bouton au démarrage
-regulator_button = tk.Button(bottom_frame, text="❌ Désactiver Régulateur", font=("Times New Roman", 22, "bold"), command=toggle_regulator, 
-    bg="red", fg="white", width=40, height=2
+regulator_button = tk.Button(bottom_frame, text="✅ Activer Régulateur", font=("Times New Roman", 22, "bold"), command=toggle_regulator, 
+    bg="green", fg="white", width=40, height=2
 )
 regulator_button.pack()
 

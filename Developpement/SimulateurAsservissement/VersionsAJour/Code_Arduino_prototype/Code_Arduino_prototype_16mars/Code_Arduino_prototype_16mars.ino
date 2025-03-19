@@ -8,7 +8,7 @@ void shiftZ(float arr[]){
   arr[0] = 999;
 };
 
-bool is_regulation_on = False;  // Variable globale pour activer/désactiver le régulateur
+bool is_regulation_on = false;  // Variable globale pour activer/désactiver le régulateur
 
 // Pin assignments
 const int THERMISTOR1_PIN = A0;
