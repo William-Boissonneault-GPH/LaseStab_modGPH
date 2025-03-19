@@ -7,6 +7,9 @@ void shiftZ(float arr[]){
   arr[1] = arr[0];
   arr[0] = 999;
 };
+
+bool is_regulation_on = False;  // Variable globale pour activer/désactiver le régulateur
+
 // Pin assignments
 const int THERMISTOR1_PIN = A0;
 const int THERMISTOR2_PIN = A1;
@@ -17,11 +20,12 @@ volatile int PWM_commande = 127;
 
 
 //Température Ambiante
-const float Tamb = 23.5;
+const float Tamb = 24.0;
 const float TempMax = 30.0;
 const float TempMin = 20.0;
-volatile float T_vise = 23.5;
-volatile float T_asserv = 23.5;  //Pour anti wind-up
+volatile float T_vise = 24.0;
+volatile float T_asserv = 24.0;  //Pour anti wind-up
+volatile float GainREG = 0.4;
 
 ////Lecture de température
 // Résistance pull-up et constante de la thermistance
@@ -105,7 +109,7 @@ float Comparateur(float T_consigne, float T3_asserv[]){
 };
 
 float Regulateur() {
-  float GainREG = 0.4;
+  //float GainREG = 0.4;
   //float GainREG = 0.5;
   //Commande = Amperage voulu
   float Commande = REG[0]*ERREUR[0]*GainREG;
@@ -136,7 +140,7 @@ float estimateurT3() {
   float GT1T3[6] = {0.0, 0.00019425, 0.00019111, 1.0, -1.9517, 0.9522};
   float GT2T3[4] = {0.0, 0.0303, 1.0, -0.9655};
 
-  float alpha = 0.5;
+  float alpha = 0.3;
   //float alpha = 0.5;
   float beta = 1.0 - alpha; 
 
@@ -169,6 +173,7 @@ float estimateurT3() {
 
 float traduireTemperatureC(int adcValue) {
   // ADC vers v_in (dans pins)
+
   float V_in = (adcValue * 5.0) / 1023.0;
 
   // Calculer V_out_diviseur (tension sortant diviseur):
@@ -236,8 +241,62 @@ void loop() {
       T_vise = command.substring(9).toFloat();  // Extract setpoint value
     }
 
-    if (command.startsWith("ASSERVT3:")) {
-      Asserv_T3EST_False_T3_True = command.substring(9).toInt();  // Extract setpoint value
+    //if (command.startsWith("ASSERVT3:")) {
+      //Asserv_T3EST_False_T3_True = command.substring(9).toInt();  // Extract setpoint value
+    //}
+    // Activer le régulateur
+    else if (command == "REGON") {
+      is_regulation_on = true;
+    }
+
+    // Désactiver le régulateur
+    else if (command == "REGOFF") {
+      is_regulation_on = false;
+    }
+
+    // Entrer la valeur du gain du regulateur
+    else if (command.startsWith("GAINREG:")) {
+      String gainValueStr = command.substring(8);  // Extraire la valeur après "GAINREG:"
+      gainValueStr.trim();  // Supprime les espaces pour éviter une entrée vide
+
+      // Vérifier si une valeur a été réellement entrée
+      if (gainValueStr.length() == 0) {
+          return;  // Ne rien modifier et quitter la fonction
+      }
+
+      // Conversion en float
+      float newGain = gainValueStr.toFloat();
+
+      // Vérifier si la conversion est valide (éviter les entrées non numériques)
+      if (gainValueStr.toFloat() == 0.0 && gainValueStr != "0") {  // Permet d'accepter 0
+          return;
+      }
+
+      GainREG = newGain;  // ✅ Mise à jour sans restriction
+    }
+
+     // ✅ Intégration de la gestion du vecteur REG[]
+    else if (command.startsWith("REGVALUES:")) {
+      String valuesStr = command.substring(10);  // Extraire la partie après "REGVALUES:"
+      float newREG[6];  // Tableau temporaire pour stocker les nouvelles valeurs
+      int index = 0;
+
+      char *ptr = strtok((char *)valuesStr.c_str(), ",");  // Séparer les valeurs avec ","
+      while (ptr != NULL && index < 6) {
+        newREG[index] = atof(ptr);  // Convertir en float
+        ptr = strtok(NULL, ",");
+        index++;
+      }
+
+      // Vérifier que 6 valeurs ont bien été reçues avant de modifier REG[]
+      if (index == 6) {
+        for (int i = 0; i < 6; i++) {
+          REG[i] = newREG[i];  // Mettre à jour REG[]
+        }
+        Serial.println("REG mis à jour avec succès !");
+      } else {
+        Serial.println("Erreur : Nombre incorrect de valeurs pour REG.");
+      }
     }
   }
 
@@ -256,7 +315,8 @@ ISR(TIMER1_COMPA_vect) {
     T_asserv = TempMin;
   } 
 
-  if (clockTick == 4){
+ /* if (clockTick == 4){
+    
     //1. Comparateur et shift de mémoire, ERREUR OK
     if (Asserv_T3EST_False_T3_True == 0){
       e = Comparateur(T_asserv, T3_EST);
@@ -271,6 +331,26 @@ ISR(TIMER1_COMPA_vect) {
     PWM_commande = CommandeVersPWM(c);
     analogWrite(PWM_OUTPUT_PIN, PWM_commande);
     //analogWrite(PWM_OUTPUT_PIN, 127);
+    clockTick = 0;
+  } */
+
+    if (clockTick == 4) {
+    if (is_regulation_on) {  // Vérifie si le régulateur est actif
+      // 1. Comparateur et shift de mémoire, ERREUR OK
+      e = Comparateur(T_asserv, T3_EST);
+    
+      // 2. Régulateur, COMMANDE OK
+      float c = Regulateur();
+
+      // 3. Changer la commande PWM
+      PWM_commande = CommandeVersPWM(c);
+      analogWrite(PWM_OUTPUT_PIN, PWM_commande);
+    } else {
+      // Si le régulateur est OFF, mettre PWM à 127
+      PWM_commande = 127;
+      analogWrite(PWM_OUTPUT_PIN, PWM_commande);
+    }
+
     clockTick = 0;
   }
 
@@ -287,8 +367,7 @@ ISR(TIMER1_COMPA_vect) {
   int adcValue3 = analogRead(THERMISTOR3_PIN);
 
   T1[0] = traduireTemperatureC(adcValue1);
-  //Ajsutement a l ouverture
-  T2[0] = traduireTemperatureC(adcValue2) - 0.3;
+  T2[0] = traduireTemperatureC(adcValue2);
   T3[0] = traduireTemperatureC(adcValue3);
 
   //5. Estimer T3
