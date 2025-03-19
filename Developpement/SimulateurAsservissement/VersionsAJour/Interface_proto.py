@@ -47,9 +47,10 @@ page_temperature = tk.Frame(notebook)
 page_regulateur = tk.Frame(notebook)
 page_principale = tk.Frame(notebook)
 
+notebook.add(page_principale, text="Enregistrer")
 notebook.add(page_temperature, text="Température")
 notebook.add(page_regulateur, text="Régulateur")
-notebook.add(page_principale, text="Enregistrer")
+
 
 # Create variables to hold the data
 time_data, temp1_data, temp2_data, temp3_data, temp4_data, setpoint_data= [], [], [], [], [], []
@@ -67,7 +68,6 @@ entries = {}
 lastError = 999
 lastCommand = 999
 lastSetpoint = 999
-
 
 # Create a plot for real-time data
 plt.rcParams["legend.fontsize"] = 12 # Forcer la taille de la légende globalement
@@ -184,10 +184,10 @@ def toggle_regulator():
 
     if is_regulation_on:
         regulator_button.config(text="❌ Désactiver Régulateur", bg="red")
-        arduino.write(b"REGON\n")
+        arduino.write(f"REGSET:{is_regulation_on}\n".encode())
     else:
         regulator_button.config(text="✅ Activer Régulateur", bg="green")
-        arduino.write(b"REGOFF\n")
+        arduino.write(f"REGSET:{is_regulation_on}\n".encode())
 
 # Fonction pour envoyer les valeurs REG modifiées à l'Arduino
 def send_REG_values():
@@ -242,9 +242,9 @@ page_principale.columnconfigure(0, weight=1)  # Centre les éléments horizontal
 top_frame = tk.Frame(page_principale)
 top_frame.grid(row=0, column=0, pady=20)  # Ajoute un espacement en haut
 
-save_button = tk.Button(top_frame, text="📁 Enregistrer CSV", font=("Times New Roman", 20, "bold"), 
+save_button = tk.Button(top_frame, text="📁 Charger CSV", font=("Times New Roman", 20, "bold"), 
                         command=save_csv, bg="green", fg="white", width=30)
-save_button.pack(pady=10)
+save_button.pack(pady=20)
 
 # 📌 Cadre central (peut contenir d'autres éléments)
 center_frame = tk.Frame(page_principale)
@@ -327,7 +327,7 @@ command_button.pack(padx=10, pady=10)
 
 
 
-# Start real-time plot updating
+#Start real-time plot updating
 start_time = time.time()  # Start time for plotting
 ani = FuncAnimation(fig, update_data, interval=100, cache_frame_data=False)
 
