@@ -237,6 +237,10 @@ void loop() {
   //ECOUTE POUR COMMUNICATION SERIAL (CHANGEMENT DE CONSIGNE)
   if (Serial.available()) {
     String command = Serial.readString();
+
+    //Serial.print("Commande reçue: ");  // 🔍 Debugging
+    //Serial.println(command);           // 🔍 Afficher la commande
+
     if (command.startsWith("SETPOINT:")) {
       T_vise = command.substring(9).toFloat();  // Extract setpoint value
     }
@@ -244,14 +248,13 @@ void loop() {
     //if (command.startsWith("ASSERVT3:")) {
       //Asserv_T3EST_False_T3_True = command.substring(9).toInt();  // Extract setpoint value
     //}
-    // Activer le régulateur
-    else if (command == "REGON") {
-      is_regulation_on = true;
+    else if (command.startsWith("REGON")) {  // 🔄 Vérifier startsWith() au lieu de ==
+        is_regulation_on = true;
+        Serial.println("✅ Régulateur activé !");
     }
-
-    // Désactiver le régulateur
-    else if (command == "REGOFF") {
-      is_regulation_on = false;
+    else if (command.startsWith("REGOFF")) {
+        is_regulation_on = false;
+        Serial.println("❌ Régulateur désactivé !");
     }
 
     // Entrer la valeur du gain du regulateur

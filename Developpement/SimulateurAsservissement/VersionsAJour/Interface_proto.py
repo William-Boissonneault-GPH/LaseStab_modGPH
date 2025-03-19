@@ -96,7 +96,8 @@ def update_data(frame):
     
     if arduino.in_waiting > 0:
         data = arduino.readline().decode('utf-8').strip()
-        if data:
+
+        if data.count(',') == 7:
             try:
                 time_str, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint = data.split(',')
                 current_time = time.time() - start_time  # Calculate elapsed time
@@ -122,7 +123,8 @@ def update_data(frame):
 
             except ValueError:
                 raise  # Ignore invalid data
-
+        else:
+            return
     # Ensure that offsets is a 2D array: we create a list of (time, temp) pairs
     scatter_temp1.set_offsets(np.column_stack((time_data, temp1_data)))
     scatter_temp2.set_offsets(np.column_stack((time_data, temp2_data)))
@@ -156,21 +158,26 @@ def send_Gainreg():
     Gainreg = Gainreg_entry.get().strip()  # Récupérer la valeur entrée et supprimer les espaces inutiles
     try:
         Gainreg_float = float(Gainreg)  # Convertir en float
+        print(Gainreg_float)
         arduino.write(f"GAINREG:{Gainreg_float}\n".encode())  # Envoyer la valeur en Serial
         messagebox.showinfo("Succès", f"Gain régulateur envoyé : {Gainreg_float}")
     except ValueError:
         messagebox.showerror("Erreur", "Veuillez entrer une valeur numérique valide.")
-   
 
-def send_command():
-    command = command_entry.get()
-    if command:
-        arduino.write(f"ASSERVT3:{command}\n".encode())  # Send custom command to Arduino
-    else:
-        messagebox.showerror("Error", "Please enter a command.")
-"""
+ #reset le gain du regulateur  
+def reset_Gainreg():
+    """Réinitialise le GainREG à sa valeur par défaut (0.4) et l'envoie à l'Arduino"""
+    default_gain = 0.4  # Valeur par défaut
+    Gainreg_entry.delete(0, tk.END)  # Efface l'entrée actuelle
+    Gainreg_entry.insert(0, str(default_gain))  # Insère la valeur par défaut
+    
+    print("reset_Gainreg() a été appelé")  # 🔍 Vérification
+    print(f"Valeur réinitialisée : {default_gain}")  # 🔍 Vérification
+    # Envoyer la valeur par défaut à l'Arduino
+    arduino.write(f"GAINREG:{default_gain}\n".encode())
+    
+    messagebox.showinfo("Info", "Le Gain du regulateur  a été réinitialisé à sa valeur par défaut (0.4).")
 
-"""
 
 
 
@@ -184,10 +191,10 @@ def toggle_regulator():
 
     if is_regulation_on:
         regulator_button.config(text="❌ Désactiver Régulateur", bg="red")
-        arduino.write(f"REGSET:{is_regulation_on}\n".encode())
+        arduino.write(b"REGON\n")
     else:
         regulator_button.config(text="✅ Activer Régulateur", bg="green")
-        arduino.write(f"REGSET:{is_regulation_on}\n".encode())
+        arduino.write(b"REGOFF\n")
 
 # Fonction pour envoyer les valeurs REG modifiées à l'Arduino
 def send_REG_values():
@@ -212,14 +219,17 @@ def send_REG_values():
     arduino.write(reg_command.encode())
     messagebox.showinfo("Succès", "Les nouvelles valeurs de REG ont été envoyées.")
 
+# Reset les valeurs du regulateurs a celles par defaut
 def reset_REG_values():
     """Réinitialise les coefficients du régulateur aux valeurs par défaut"""
+    print("reset_REG_values() a été appelé")  # 🔍 Vérification
     for i in range(6):
         entries[f"reg_{i}"].delete(0, tk.END)  # Efface la valeur actuelle
         entries[f"reg_{i}"].insert(0, str(default_REG_values[i]))  # Insère la valeur par défaut
     
     # Envoyer les valeurs par défaut à l'Arduino
     reg_command = f"REGVALUES:{','.join(map(str, default_REG_values))}\n"
+    print(reg_command)
     arduino.write(reg_command.encode())
     
     messagebox.showinfo("Info", "Les valeurs du régulateur ont été réinitialisées aux valeurs par défaut.")
@@ -274,8 +284,14 @@ Gainreg_label.grid(row=0, column=0, padx=20, pady=10, sticky="e")  # Aligné à 
 Gainreg_entry = tk.Entry(Gain_frame, font=("Times New Roman", 20), width=15, justify="center")
 Gainreg_entry.grid(row=0, column=1, padx=20, pady=10, ipady=5)  # Aligné à gauche
 
-Gainreg_button = tk.Button(Gain_frame, text="Valider", font=("Times New Roman", 20, "bold"), command=send_Gainreg, bg="blue", fg="white", width=20)
+Gainreg_button = tk.Button(Gain_frame, text="Valider", font=("Times New Roman", 20, "bold"), 
+                           command=send_Gainreg, bg="blue", fg="white", width=20)
 Gainreg_button.grid(row=0, column=2, padx=20, pady=10)
+
+# 🔄 Bouton pour réinitialiser le GainREG (en dessous du bouton Valider)
+reset_gain_button = tk.Button(Gain_frame, text="Réinitialiser", font=("Times New Roman", 18, "bold"),
+                              command=reset_Gainreg, bg="gray", fg="white", width=20)
+reset_gain_button.grid(row=1, column=2, padx=20, pady=10)  # On met row=1 pour qu'il soit en dessous
 
 # 🛠️ Cadre pour stocker les coefficients du régulateur
 coeff_frame = tk.Frame(frame_reg)
