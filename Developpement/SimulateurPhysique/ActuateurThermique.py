@@ -157,7 +157,7 @@ class ActionneurThermique:
 
 class ActionneurThermiqueSIMPLE:
     
-    def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque, coeff_a, coeff_b):
+    def __init__(self, position, dimensions, matPlaque, dimensionElementFiniePlaque, coeff_a=0.1493, coeff_b=1.3291):
         self.coeff_a = coeff_a
         self.coeff_b = coeff_b
 

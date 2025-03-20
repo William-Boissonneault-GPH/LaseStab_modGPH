@@ -63,9 +63,12 @@ def lancer_simulation(params, progressCallback):
     ##Animation steps détermine la mémoire utilisé dans l'ordi!
     #animationStep = 1600
     animationStep = 1600
-
+    plotRes = 10
+    
     video = []
     temperatures = [[], [], []]
+    plottingTemp = [[],[],[]]
+    plottingtemp = []
     time = []
 
     # Génération de la matrice de puissance thermique
@@ -77,18 +80,23 @@ def lancer_simulation(params, progressCallback):
             #Effectue la fermeture à mi-chemin
             echelonCourant = 0
         
-        if i % animationStep == 0:
-            print(f"La simulation est rendu à {round((i / num_frames)*100, 2)} %")
-            progressCallback(round((i / num_frames)*100, 2))
-            video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb]))
+        if i % (animationStep/plotRes) == 0:
+            if i % animationStep == 0:
+                print(f"La simulation est rendu à {round((i / num_frames)*100, 2)} %")
+                progressCallback(round((i / num_frames)*100, 2))
+                video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb]))
 
-            #Pour actuateur complex
-            #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
+                #Pour actuateur complex
+                #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
 
-            #Pour actuateur SIMPLE
-            TecA.updateMatQTECCourrant(echelonCourant)
+                #Pour actuateur SIMPLE
+                TecA.updateMatQTECCourrant(echelonCourant)
 
-            #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
+                #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
+            
+            for j, thermistance in enumerate(Thermistances):
+                plottingTemp[j].append(thermistance.lire_temperature())
+            plottingtemp.append(i * dTime)
         else:
             PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb])
         #if i % animationStep == 0:
@@ -129,9 +137,9 @@ def lancer_simulation(params, progressCallback):
         im.set_array(video[frame])
         ax_im.set_title(f"Time = {round(frame * animationStep * dTime, 2)} s")
 
-        line_hist1.set_data(np.arange(frame * animationStep + 1) * dTime, temperatures[0][:frame * animationStep + 1])
-        line_hist2.set_data(np.arange(frame * animationStep + 1) * dTime, temperatures[1][:frame * animationStep + 1])
-        line_hist3.set_data(np.arange(frame * animationStep + 1) * dTime, temperatures[2][:frame * animationStep + 1])
+        line_hist1.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[0][:frame * plotRes + 1])
+        line_hist2.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[1][:frame * plotRes + 1])
+        line_hist3.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[2][:frame * plotRes + 1])
 
         return [im, line_hist1, line_hist2, line_hist3]
 

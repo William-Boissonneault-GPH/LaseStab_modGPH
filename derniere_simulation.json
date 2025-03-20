@@ -15,17 +15,17 @@
     "Dimension_y_plaque": 0.062,
     "Dimension_z_plaque": 0.0016,
     "Co\u00e9fficient_convection": 14.0,
-    "Temp\u00e9rature_initiale": 22.0,
+    "Temp\u00e9rature_initiale": 24.0,
     "Conductivit\u00e9_thermique": 180.0,
     "Densit\u00e9": 2700.0,
     "Capacit\u00e9_thermique": 900.0,
-    "\u00c9chelon_courant_(A)": 1.0,
+    "\u00c9chelon_courant_(A)": -0.7,
     "Temps_simulation_(s)": 100.0,
     "Sources_chaleur": [
         {
-            "x": 0.02,
-            "y": 0.06,
-            "puissance": 1.0
+            "x": 0.0,
+            "y": 0.0,
+            "puissance": 0.0
         }
     ]
 }
