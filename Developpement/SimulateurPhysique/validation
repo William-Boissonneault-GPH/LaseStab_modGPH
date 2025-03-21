@@ -16,18 +16,16 @@ from scipy.interpolate import interp1d
 
 
 
+fichierAComparer = r'C:\Users\willi\OneDrive - Université Laval\Cours\HIV2025\ModelisationGPH\LaseStab_modGPH\Developpement\SimulateurPhysique\comparaisonValidation\donneesProto\mesures_-1_5A.csv'
+regimeString="legen"
+indiceDeDepartFicher = 11
 
-fichierAComparer = r'C:\Users\willi\OneDrive - Université Laval\Cours\HIV2025\ModelisationGPH\LaseStab_modGPH\Developpement\SimulateurPhysique\comparaisonValidation\donneesProto\data_thermistances1A.csv'
-regimeString="AMB_N1000mA"
-indiceDeDepartFicher = 26 
+T_ambiante = 22.5
 
-T_ambiante = 23
+tempRegime1 = 12- indiceDeDepartFicher
+courantRegime1 = -1.5
 
-
-tempRegime1 = 808 - 26
-courantRegime1 = -1
-
-tempRegime2 = 0
+tempRegime2 = 1
 courantRegime2 = 0
 
 
@@ -163,21 +161,22 @@ T3 = np.array(T3)
 EssaisProto = {
     "time" : proto_time,
     "T1" : T1,
-    "T2" : T2 - 0.3,
+    "T2" : T2,
     "T3" : T3
 }
 
 plt.figure(figsize=(5,3))
 
 colors = ['#DC143C', '#B22222', '#FF6347']
+line_styles = ['-', '--', ':']
 
-plt.plot(EssaisProto["time"][0:], EssaisProto["T3"][0:], color=colors[2])
-plt.plot(EssaisProto["time"][0:], EssaisProto["T2"][0:], color=colors[1], label="Prototype")
-plt.plot(EssaisProto["time"][0:], EssaisProto["T1"][0:], color=colors[0])
+plt.plot(EssaisProto["time"][0::10], EssaisProto["T3"][0::10], color=colors[2], linestyle=line_styles[2], label='T3 mesurée')
+plt.plot(EssaisProto["time"][0::10], EssaisProto["T2"][0::10], color=colors[1], linestyle=line_styles[1], label='T2 mesurée')
+plt.plot(EssaisProto["time"][0::10], EssaisProto["T1"][0::10], color=colors[0], linestyle=line_styles[0], label='T1 mesurée')
 
-plt.plot(time, temperatures[0], color='k', label="Simulation")
-plt.plot(time, temperatures[1], color='k')
-plt.plot(time, temperatures[2], color='k')
+plt.plot(time, temperatures[0], color='k', alpha=0.5, label='T simulée')
+plt.plot(time, temperatures[1], color='k', alpha=0.5)
+plt.plot(time, temperatures[2], color='k', alpha=0.5)
 
 plt.xlabel("temps [s]")
 plt.ylabel("Température [C]")
@@ -215,6 +214,8 @@ for i in range(3):
     plt.plot([],[],' ',label=f"Accord T{i+1}: {accord}±{incert} %")
 
 plt.legend()
+plt.xlim((0,tempRegime1+tempRegime2))
+plt.ylim((10,25))
 plt.tight_layout()
 plt.savefig(f'Developpement/SimulateurPhysique/comparaisonValidation/{regimeString}.pdf')
 plt.show()
