@@ -1,5 +1,5 @@
-Temps (s),T1 (캜),T2 (캜),T3 (캜)
-Temps (s), T1 (캜), T2 (캜), T3 (캜)
+Temps (s),T1 (째C),T2 (째C),T3 (째C)     910mA c'est lors des 25 premieres secondes lorsque T3 = 30
+Temps (s), T1 (째C), T2 (째C), T3 (째C)
 0,32.95,31.01,29.94
 1,32.91,31.05,29.96
 2,32.91,31.05,30.01
