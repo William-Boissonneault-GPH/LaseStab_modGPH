@@ -19,9 +19,12 @@ arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 root = tk.Tk()
 root.title("Arduino Data Logger")
 root.geometry("1300x1600+10+10") #positionne Thinker en haut a gauche
+
+
 # Création du Notebook pour les pages
 notebook = ttk.Notebook(root)
 notebook.pack(fill="both", expand=True)
+
 
 # Modifier le style des onglets
 style = ttk.Style()
@@ -46,11 +49,27 @@ style.map("TNotebook.Tab",
 page_temperature = tk.Frame(notebook)
 page_regulateur = tk.Frame(notebook)
 page_principale = tk.Frame(notebook)
+page_aide = tk.Frame(notebook)
 
 notebook.add(page_principale, text="Enregistrer")
 notebook.add(page_temperature, text="Température")
 notebook.add(page_regulateur, text="Régulateur")
+notebook.add(page_aide, text="Aide")
 
+# 📌 Création du cadre pour la LED de stabilité sur la barre d'onglets
+stability_frame = tk.Frame(notebook, bg="#393E46", padx=10, pady=2)  # Fond gris foncé pour s'aligner
+stability_frame.place(relx=1.0, rely=0, anchor="ne")  # Position fixe à droite
+
+# 📌 Label de texte "Stabilité atteinte"
+stability_label = tk.Label(stability_frame, text="Stabilité atteinte ", font=("Times New Roman", 22, "bold"), fg="white",bg="#393E46")
+stability_label.pack(side="left", padx=5)
+
+# Création d'un "cercle LED" avec Canvas
+led_canvas = tk.Canvas(stability_frame, width=30, height=30, highlightthickness=0, bg="#393E46")
+led_canvas.pack(side="right")
+
+# Cercle LED rouge par défaut
+led_indicator = led_canvas.create_oval(5, 5, 25, 25, fill="red", outline="")
 
 # Create variables to hold the data
 time_data, temp1_data, temp2_data, temp3_data, temp4_data, setpoint_data= [], [], [], [], [], []
@@ -96,6 +115,8 @@ def update_data(frame):
     
     if arduino.in_waiting > 0:
         data = arduino.readline().decode('utf-8').strip()
+        if not "," in data:  # Filtre les lignes non numériques (comme les confirmations)
+            print(f"📩 Message Arduino : {data}")
 
         if data.count(',') == 7:
             try:
@@ -106,8 +127,7 @@ def update_data(frame):
                 temp2_data.append(float(temp2))
                 temp3_data.append(float(temp3))
                 temp4_data.append(float(temp4))
-
-                setpoint_data.append(setpoint_float if setpoint_float is not None else 0)
+                setpoint_data.append(float(lastSetpoint))
                 # Log data to CSV
                 if csv_writer:
                     csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint, last_point])
@@ -125,6 +145,7 @@ def update_data(frame):
                 raise  # Ignore invalid data
         else:
             return
+        
     # Ensure that offsets is a 2D array: we create a list of (time, temp) pairs
     scatter_temp1.set_offsets(np.column_stack((time_data, temp1_data)))
     scatter_temp2.set_offsets(np.column_stack((time_data, temp2_data)))
@@ -137,8 +158,46 @@ def update_data(frame):
         #ax.set_ylim(min(min(temp1_data), min(temp2_data), min(temp3_data), min(temp4_data)),
         #        max(max(temp1_data), max(temp2_data), max(temp3_data), max(temp4_data)))
     
+     # Vérifier la stabilité à chaque mise à jour des données
+    check_stability()
     return scatter_temp1, scatter_temp2, scatter_temp3, scatter_temp4, scatter_setpoint
 
+is_stable = False  # Indicateur de stabilité (False au départ)
+
+def check_stability():
+    global is_stable  # Permet d'accéder à la variable globale
+
+    """Vérifie si la température Temp3 est stable sur les 20 dernières secondes."""
+    if len(time_data) < 20:
+        return  # Pas assez de données pour évaluer la stabilité
+
+    # Prendre les 20 dernières secondes de Temp3
+    recent_times = np.array(time_data[-20:])
+    recent_temps = np.array(temp3_data[-20:])
+
+    # Calcul de la standard deviation (écart-type)
+    std_dev = np.std(recent_temps)
+
+    # Ajustement linéaire (pente de la régression linéaire)
+    if len(recent_times) > 1:
+        slope, _ = np.polyfit(recent_times, recent_temps, 1)  # Ajustement linéaire
+    else:
+        slope = float("inf")  # Évite la division par zéro
+
+    #print(f"Écart-type: {std_dev:.4f}, Pente: {slope:.4f}")  # 🔍 Debugging console
+
+    # Condition de stabilité : faible variation et faible pente
+    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.005)
+
+    # Mise à jour de la LED
+    update_stability_led(is_stable)
+
+
+# Fonction pour mettre à jour la LED en fonction de la stabilité
+def update_stability_led(is_stable):
+    """Met à jour l'état de la LED de stabilité."""
+    color = "green" if is_stable else "red"
+    led_canvas.itemconfig(led_indicator, fill=color)
 
 
 setpoint_float = None
@@ -158,7 +217,7 @@ def send_Gainreg():
     Gainreg = Gainreg_entry.get().strip()  # Récupérer la valeur entrée et supprimer les espaces inutiles
     try:
         Gainreg_float = float(Gainreg)  # Convertir en float
-        print(Gainreg_float)
+        #print(Gainreg_float)
         arduino.write(f"GAINREG:{Gainreg_float}\n".encode())  # Envoyer la valeur en Serial
         messagebox.showinfo("Succès", f"Gain régulateur envoyé : {Gainreg_float}")
     except ValueError:
@@ -167,12 +226,12 @@ def send_Gainreg():
  #reset le gain du regulateur  
 def reset_Gainreg():
     """Réinitialise le GainREG à sa valeur par défaut (0.4) et l'envoie à l'Arduino"""
-    default_gain = 0.4  # Valeur par défaut
+    default_gain = float (0.4) # Valeur par défaut
     Gainreg_entry.delete(0, tk.END)  # Efface l'entrée actuelle
     Gainreg_entry.insert(0, str(default_gain))  # Insère la valeur par défaut
     
-    print("reset_Gainreg() a été appelé")  # 🔍 Vérification
-    print(f"Valeur réinitialisée : {default_gain}")  # 🔍 Vérification
+    #print("reset_Gainreg() a été appelé")  # 🔍 Vérification
+    #print(f"Valeur réinitialisée : {default_gain}")  # 🔍 Vérification
     # Envoyer la valeur par défaut à l'Arduino
     arduino.write(f"GAINREG:{default_gain}\n".encode())
     
@@ -234,6 +293,8 @@ def reset_REG_values():
     
     messagebox.showinfo("Info", "Les valeurs du régulateur ont été réinitialisées aux valeurs par défaut.")
 
+
+
 # Function to open file dialog and select where to save the CSV file
 def save_csv():
     global csv_writer, csv_file
@@ -265,7 +326,7 @@ center_frame.grid(row=1, column=0, pady=100)  # Ajoute de l'espace pour équilib
 # Create input field and button to send setpoint to Arduino
 setpoint_label = tk.Label(page_temperature, text="Entrer la température désirée (°C):", font=("Times New Roman", 20, "bold"))
 setpoint_label.pack(padx=20, pady=20)
-setpoint_entry = tk.Entry(page_temperature, font=("Times New Roman", 16), width=50)
+setpoint_entry = tk.Entry(page_temperature, font=("Times New Roman", 20), width=50)
 setpoint_entry.pack(padx=20, pady=10, ipady=10)
 setpoint_button = tk.Button(page_temperature, text="Valider", font=("Times New Roman", 18, "bold"), command=send_setpoint, bg="blue", fg="white", width=15)
 setpoint_button.pack(padx=10, pady=10)
@@ -330,15 +391,48 @@ regulator_button = tk.Button(bottom_frame, text="✅ Activer Régulateur", font=
 regulator_button.pack()
 
 
-"""
-# Create input field and button to send custom command to Arduino
-command_label = tk.Label(root, text="0 pour asservir T3_estimé, 1 pour T3:", font=("Times New Roman", 14, "bold"))
-command_label.pack(padx=10, pady=10)
-command_entry = tk.Entry(root, font=("Times New Roman", 14))
-command_entry.pack(padx=10, pady=10)
-command_button = tk.Button(root, text="Choisir Asserv", font=("Times New Roman", 14, "bold"), command=send_command)
-command_button.pack(padx=10, pady=10)
-"""
+# Contenu de la page "Aide"
+aide_frame = tk.Frame(page_aide, bg="#F0F0F0")
+aide_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+# Titre
+titre_label = tk.Label(aide_frame, text="🧭 Guide d'utilisation", font=("Times New Roman", 30, "bold"), bg="#F0F0F0")
+titre_label.pack(pady=(0, 20))
+
+# Texte explicatif
+texte = (
+    "Bienvenue dans l'interface de régulation thermique.\n\n"
+    "🔹 Onglet 'Enregistrer' : permet d'enregistrer les données dans un fichier CSV.\n"
+    "🔹 Onglet 'Température' : entrez une température cible et validez pour envoyer la consigne.\n"
+    "🔹 Onglet 'Régulateur' : ajustez les coefficients du régulateur et activez/désactivez l'asservissement.\n"
+    "🔹 LED de stabilité (coin supérieur droit) :"
+)
+texte_label = tk.Label(aide_frame, text=texte, font=("Times New Roman", 22), justify="left", bg="#F0F0F0")
+texte_label.pack(anchor="w")
+
+# LED verte - Température stable
+led_row1 = tk.Frame(aide_frame, bg="#F0F0F0")
+led_row1.pack(anchor="w", pady=5)
+led_canvas1 = tk.Canvas(led_row1, width=20, height=20, bg="#F0F0F0", highlightthickness=0)
+led_canvas1.create_oval(2, 2, 18, 18, fill="green")
+led_canvas1.pack(side="left", padx=(40,10))
+tk.Label(led_row1, text="Température stable", font=("Times New Roman", 22), bg="#F0F0F0").pack(side="left")
+
+# LED rouge - Température instable
+led_row2 = tk.Frame(aide_frame, bg="#F0F0F0")
+led_row2.pack(anchor="w", pady=5)
+led_canvas2 = tk.Canvas(led_row2, width=20, height=20, bg="#F0F0F0", highlightthickness=0)
+led_canvas2.create_oval(2, 2, 18, 18, fill="red")
+led_canvas2.pack(side="left", padx=(40,10))
+tk.Label(led_row2, text="Température instable", font=("Times New Roman", 22), bg="#F0F0F0").pack(side="left")
+
+# Conseils supplémentaires
+conseils = (
+    "\n🔐 Assurez-vous que l'Arduino est connecté sur le bon port COM.\n"
+    "⚠️ Ne quittez pas brutalement l'interface pour éviter la perte de données."
+)
+conseils_label = tk.Label(aide_frame, text=conseils, font=("Times New Roman", 22), justify="left", bg="#F0F0F0")
+conseils_label.pack(anchor="w", pady=(10, 0))
 
 
 
