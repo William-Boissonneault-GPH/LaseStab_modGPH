@@ -201,9 +201,8 @@ def round_uncertainty(value, uncertainty):
 
 
 for i in range(3):
-    # Interpolate Curve 2 to match Curve 1's time points
     interp_func = interp1d(proto_time, EssaisProto[f"T{i+1}"][0:], kind='linear', fill_value='extrapolate')
-    values2_interp = interp_func(time)  # Interpolated values
+    values2_interp = interp_func(time) 
 
     percent_error = np.abs((temperatures[i]- values2_interp) / values2_interp) * 100
 
