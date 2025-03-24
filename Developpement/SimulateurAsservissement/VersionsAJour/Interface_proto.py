@@ -6,9 +6,12 @@ from matplotlib.animation import FuncAnimation
 import csv
 import time
 import numpy as np
+import json
+import os
 
 csv_writer = None
 csv_file = None
+SAVE_FILE = "config_sauvegarde.json"
 
 # Define serial port and parameters
 SERIAL_PORT = 'COM3'  # Update this with your Arduino's serial port
@@ -76,13 +79,18 @@ time_data, temp1_data, temp2_data, temp3_data, temp4_data, setpoint_data= [], []
 
 # Noms des valeurs REG et leurs indices
 reg_labels = [
-    "Coefficient P", "Coefficient I", "Coefficient D", 
-    "Facteur de Normalisation", "Dérivée 1", "Dérivée 2"
+    "Coéfficient numérateur dégré 2", "Coéfficient numérateur dégré 1", "Coéfficient numérateur dégré 0", 
+    "Coéfficient dénominateur dégré 2", "Coéfficient dénominateur dégré 1", "Coéfficient dénominateur dégré 0"
 ]
 
 # Valeurs par défaut de REG (initialisées avec les valeurs Arduino)
 default_REG_values = [1.0, -1.8995, 0.901, 1.0, -1.913, 0.913]
 entries = {}
+
+#enregistrer le temps de première stabilité
+stability_reached_time = None
+stability_candidate_time = None  # Moment où la stabilité a été détectée
+stability_logged = False
 
 lastError = 999
 lastCommand = 999
@@ -104,6 +112,8 @@ ax.set_xlabel("Temps (s)", fontsize=16, fontweight='bold')  # Titre de l'axe X
 ax.set_ylabel("Température (°C)", fontsize=16, fontweight='bold')  # Titre de l'axe Y
 ax.tick_params(axis='both', labelsize=14)  # Change la taille des étiquettes des axes
 ax.legend()
+ax.grid(which='both')
+ax.grid(which='minor', alpha=0.2, linestyle='--')
 ax.set_title("Évolution de la Température des Thermistances", fontsize=18, fontweight='bold')
 plt.get_current_fig_manager().window.geometry("+1350+10")
 
@@ -115,8 +125,9 @@ def update_data(frame):
     
     if arduino.in_waiting > 0:
         data = arduino.readline().decode('utf-8').strip()
-        if not "," in data:  # Filtre les lignes non numériques (comme les confirmations)
-            print(f"📩 Message Arduino : {data}")
+        #if not "," in data:  # Filtre les lignes non numériques (comme les confirmations)
+            #print(f"📩 Message Arduino : {data}")
+
 
         if data.count(',') == 7:
             try:
@@ -130,10 +141,11 @@ def update_data(frame):
                 setpoint_data.append(float(lastSetpoint))
                 # Log data to CSV
                 if csv_writer:
-                    csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint, last_point])
+                    csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint,
+                                          stability_reached_time if stability_logged else ""])
                 
                 # Keep data within the plot window limit
-                if len(time_data) > 100:
+                if len(time_data) > 400:
                     time_data = time_data[1:]
                     temp1_data = temp1_data[1:]
                     temp2_data = temp2_data[1:]
@@ -187,7 +199,7 @@ def check_stability():
     #print(f"Écart-type: {std_dev:.4f}, Pente: {slope:.4f}")  # 🔍 Debugging console
 
     # Condition de stabilité : faible variation et faible pente
-    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.005)
+    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.002) and abs(float(np.average(recent_temps)) - float(lastSetpoint)) < 0.4
 
     # Mise à jour de la LED
     update_stability_led(is_stable)
@@ -195,10 +207,23 @@ def check_stability():
 
 # Fonction pour mettre à jour la LED en fonction de la stabilité
 def update_stability_led(is_stable):
-    """Met à jour l'état de la LED de stabilité."""
+    global stability_candidate_time, stability_reached_time, stability_logged
+
     color = "green" if is_stable else "red"
     led_canvas.itemconfig(led_indicator, fill=color)
 
+    current_time = time_data[-1] if time_data else 0
+
+    if is_stable:
+        if stability_candidate_time is None:
+            stability_candidate_time = current_time  # Début de stabilité
+        elif (current_time - stability_candidate_time) >= 5 and not stability_logged:
+            stability_reached_time = current_time
+            stability_logged = True
+            print(f"✅ Stabilité confirmée à {stability_reached_time:.2f} secondes")
+    else:
+        stability_candidate_time = None
+        stability_logged = False  # Réinitialiser si instable à nouveau
 
 setpoint_float = None
 # Function to send a setpoint to Arduino
@@ -303,8 +328,20 @@ def save_csv():
         # Open the file in write mode
         csv_file = open(file_path, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(['Time', 'Temp1', 'Temp2', 'Temp3', 'Temp4', 'Erreur', 'Commande PWM', 'Setpoint'])
+        csv_writer.writerow(['Time', 'Temp1', 'Temp2', 'Temp3', 'Temp4', 'Erreur', 'Commande PWM', 'Setpoint', 'Stabilité atteinte (s)'])
         messagebox.showinfo("Info", f"CSV file will be saved to: {file_path}")
+
+# Enregistrer les dernieres valeurs entrees par l'utilisateur
+def save_user_config():
+    config = {
+        "setpoint": setpoint_entry.get(),
+        "gainreg": Gainreg_entry.get(),
+        "reg_values": [entries[f"reg_{i}"].get() for i in range(6)]
+    }
+    with open(SAVE_FILE, 'w') as f:
+        json.dump(config, f)
+    print("📁 Configuration sauvegardée.")
+
 
 # 🛠️ Création du cadre principal avec une grille
 page_principale.columnconfigure(0, weight=1)  # Centre les éléments horizontalement
@@ -313,7 +350,7 @@ page_principale.columnconfigure(0, weight=1)  # Centre les éléments horizontal
 top_frame = tk.Frame(page_principale)
 top_frame.grid(row=0, column=0, pady=20)  # Ajoute un espacement en haut
 
-save_button = tk.Button(top_frame, text="📁 Charger CSV", font=("Times New Roman", 20, "bold"), 
+save_button = tk.Button(top_frame, text="📁 Enregistrer les mesures", font=("Times New Roman", 20, "bold"), 
                         command=save_csv, bg="green", fg="white", width=30)
 save_button.pack(pady=20)
 
@@ -390,6 +427,25 @@ regulator_button = tk.Button(bottom_frame, text="✅ Activer Régulateur", font=
 )
 regulator_button.pack()
 
+# Charger les valeurs a l'ouverture
+def load_user_config():
+    if os.path.exists(SAVE_FILE):
+        with open(SAVE_FILE, 'r') as f:
+            config = json.load(f)
+        # Remplir les champs
+        setpoint_entry.delete(0, tk.END)
+        setpoint_entry.insert(0, config.get("setpoint", ""))
+
+        Gainreg_entry.delete(0, tk.END)
+        Gainreg_entry.insert(0, config.get("gainreg", ""))
+
+        reg_vals = config.get("reg_values", [])
+        for i in range(min(len(reg_vals), 6)):
+            entries[f"reg_{i}"].delete(0, tk.END)
+            entries[f"reg_{i}"].insert(0, reg_vals[i])
+
+        print("🔁 Configuration rechargée.")
+
 
 # Contenu de la page "Aide"
 aide_frame = tk.Frame(page_aide, bg="#F0F0F0")
@@ -442,10 +498,21 @@ start_time = time.time()  # Start time for plotting
 ani = FuncAnimation(fig, update_data, interval=100, cache_frame_data=False)
 
 
+load_user_config()  # 🔁 Charger les anciennes valeurs sauvegardées
 # Start the Tkinter GUI
 tkinter_plot = plt.gcf().canvas.get_tk_widget()
 tkinter_plot.pack(fill=tk.BOTH, expand=1)
 plt.show()
+
+
+def on_close():
+    save_user_config()
+    if csv_file:
+        csv_file.close()
+    arduino.close()
+    root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", on_close)
 
 root.mainloop()
 

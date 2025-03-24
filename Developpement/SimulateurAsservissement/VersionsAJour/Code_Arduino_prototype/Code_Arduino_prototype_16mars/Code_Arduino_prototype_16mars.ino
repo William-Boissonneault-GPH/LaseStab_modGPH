@@ -122,8 +122,15 @@ float Regulateur() {
   COMMANDE[0] = Commande;
   //Anti wind up flag d'erreur?
    // 🔍 Afficher la valeur actuelle du gain dans le port série
-  Serial.print("GAINREG utilisé  dans la fonction regulateur(): ");
-  Serial.println(GainREG);  // ➤ Cela sera lu par Python !
+  //Serial.print("GAINREG utilisé  dans la fonction regulateur(): ");
+  //Serial.println(GainREG);  // ➤ Cela sera lu par Python !
+  //Serial.println("valeurs regulateur utilisé  dans la fonction regulateur(): ");
+  //Serial.println(REG[0], 5); Serial.println(",");
+  //Serial.println(REG[1], 5); Serial.println(",");
+  //Serial.println(REG[2], 5); Serial.println(",");
+  //Serial.println(REG[3], 5); Serial.println(",");
+  //Serial.println(REG[4], 5); Serial.println(",");
+  //Serial.println(REG[5], 5);
 
   return Commande;
 };
@@ -261,7 +268,11 @@ void loop() {
         Serial.println("❌ Régulateur désactivé !");
     }
 
-    
+    // Désactiver le régulateur
+    //else if (command == "REGOFF") {
+      //is_regulation_on = false;
+    //}
+
     // Entrer la valeur du gain du regulateur
     else if (command.startsWith("GAINREG:")) {
       String gainValueStr = command.substring(8);  // Extraire la valeur après "GAINREG:"
@@ -281,8 +292,8 @@ void loop() {
       }
 
       GainREG = newGain;  // ✅ Mise à jour sans restriction
-      Serial.print("✅ Nouveau GAINREG appliqué : ");
-      Serial.println(GainREG);
+      //Serial.print("✅ Nouveau GAINREG appliqué : ");
+      //Serial.println(GainREG);
     }
 
      // ✅ Intégration de la gestion du vecteur REG[]
