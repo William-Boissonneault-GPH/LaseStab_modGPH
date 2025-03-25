@@ -20,21 +20,21 @@ class SimulationInterface(ctk.CTk):
 
         # Définition des paramètres par section
         self.thermistances = {
-            "Position_x_thermo1": "0.10475", "Position_y_thermo1": "0.031",
-            "Position_x_thermo2": "0.05835", "Position_y_thermo2": "0.031",
-            "Position_x_thermo3": "0.01225", "Position_y_thermo3": "0.031"
+            "Position_x_thermo1_(m)": "0.10475", "Position_y_thermo1_(m)": "0.031",
+            "Position_x_thermo2_(m)": "0.05835", "Position_y_thermo2_(m)": "0.031",
+            "Position_x_thermo3_(m)": "0.01225", "Position_y_thermo3_(m)": "0.031"
         }
 
         self.tec = {
-            "Position_x_TEC": "0.096", "Position_y_TEC": "0.031",
-            "Dimension_x_TEC": "0.015", "Dimension_y_TEC": "0.0156",
+            "Position_x_TEC_(m)": "0.096", "Position_y_TEC_(m)": "0.031",
+            "Dimension_x_TEC_(m)": "0.015", "Dimension_y_TEC_(m)": "0.0156",
             "Coefficient_couplage_a": "0.1493",  
             "Coefficient_couplage_b": "1.3291"
         }
 
         self.plaque = {
-            "Dimension_x_plaque": "0.11875", "Dimension_y_plaque": "0.062",
-            "Dimension_z_plaque": "0.0016", "Coéfficient_convection": "14",
+            "Dimension_x_plaque_(m)": "0.11875", "Dimension_y_plaque_(m)": "0.062",
+            "Dimension_z_plaque_(m)": "0.0016", "Coéfficient_convection": "14",
             "Température_initiale": "24"
         }
 
@@ -52,22 +52,26 @@ class SimulationInterface(ctk.CTk):
             
         }
 
-        self.chrono_label = ctk.CTkLabel(self, text="Temps écoulé : 0s", font=("Arial", 14))
-        self.chrono_label.grid(row=3, column=4, pady=5, padx=20, sticky="ew")
-
-
         # Créer les widgets
         self.create_widgets()
 
-        ###Loading bar
-        # Create a label
-        self.label = ctk.CTkLabel(self, text="En attente de simulation", font=("Arial", 14))
-        self.label.grid(row=1, column=4, pady=5, padx=20, sticky="ew")
+        # Créer un cadre pour la barre de loading, le chronomètre et la phrase "temps restant"
+        frame_status = ctk.CTkFrame(self)
+        frame_status.grid(row=0, column=5, rowspan=10, padx=20, pady=10, sticky="ns")
 
-        # Create the progress bar
-        self.progress_bar = ctk.CTkProgressBar(self, orientation="horizontal")
-        self.progress_bar.grid(row=2, column=4, pady=5, padx=20, sticky="ew")
+        ###Loading bar
+        self.label = ctk.CTkLabel(frame_status, text="En attente de simulation", font=("Arial", 14))
+        self.label.pack(pady=10, padx=20)
+
+        self.progress_bar = ctk.CTkProgressBar(frame_status, orientation="horizontal")
+        self.progress_bar.pack(pady=10, padx=20)
         self.progress_bar.set(0)  # Initialize at 0%
+
+        ###Chronomètre
+        self.chrono_label = ctk.CTkLabel(frame_status, text="Temps écoulé : 0s", font=("Arial", 14))
+        self.chrono_label.pack(pady=10, padx=20)
+
+
 
     def ajouter_image(self):
         """Ajoute une image explicative sous les paramètres avec un titre"""
@@ -84,7 +88,7 @@ class SimulationInterface(ctk.CTk):
             titre.pack(pady=(10, 5))
 
             # Charger et afficher l’image
-            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(630, 360))  # Augmente la taille
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(650, 400))  # Augmente la taille
             label_image = ctk.CTkLabel(frame_image, image=image, text="")
             label_image.pack(pady=5)
 
@@ -123,12 +127,15 @@ class SimulationInterface(ctk.CTk):
         """ Update the progress bar """
         self.progress_bar.set(progress/100)
         self.label.configure(text="Temps restant : [Estime par derivé]")
+
         if progress >= 100:
             self.chrono_running = False
             self.label.configure(text="Simulation terminée !")
 
+
     def lancer_simulation_interface(self):
         """Récupère les paramètres et lance la simulation."""
+
         try:
             params = {**self.get_values(self.thermistances),
                     **self.get_values(self.tec),
@@ -148,6 +155,7 @@ class SimulationInterface(ctk.CTk):
             print("Paramètres récupérés :", params)
             
             self.label.configure(text="Simulation en cours...")
+
             thread = Thread(target=self.run_simulation_with_error_handling, args=(params,), daemon=True)
             
             # Lancer le chronomètre dans un thread séparé
@@ -233,7 +241,6 @@ class SimulationInterface(ctk.CTk):
             elapsed_time = int(time.time() - self.start_time)
             self.chrono_label.configure(text=f"Temps écoulé : {elapsed_time}s")
             time.sleep(1)  # Attendre 1 seconde avant la mise à jour
-
 
 
 if __name__ == "__main__":

@@ -10,9 +10,9 @@ def lancer_simulation(params, progressCallback):
     """Lance la simulation thermique avec les paramètres fournis par l'interface."""
     print("🟡 Début de la simulation...")
     # Récupération des paramètres depuis l'interface
-    dim_x = params["Dimension_x_plaque"]
-    dim_y = params["Dimension_y_plaque"]
-    dim_z = params["Dimension_z_plaque"]
+    dim_x = params["Dimension_x_plaque_(m)"]
+    dim_y = params["Dimension_y_plaque_(m)"]
+    dim_z = params["Dimension_z_plaque_(m)"]
     h = params["Coéfficient_convection"]
     cp = params["Capacité_thermique"]
     k = params["Conductivité_thermique"]
@@ -23,17 +23,17 @@ def lancer_simulation(params, progressCallback):
     sources_chaleur = params["Sources_chaleur"]
 
 
-    pos_x_thermo1 = params["Position_x_thermo1"]
-    pos_y_thermo1 = params["Position_y_thermo1"]
-    pos_x_thermo2 = params["Position_x_thermo2"]
-    pos_y_thermo2 = params["Position_y_thermo2"]
-    pos_x_thermo3 = params["Position_x_thermo3"]
-    pos_y_thermo3 = params["Position_y_thermo3"]
+    pos_x_thermo1 = params["Position_x_thermo1_(m)"]
+    pos_y_thermo1 = params["Position_y_thermo1_(m)"]
+    pos_x_thermo2 = params["Position_x_thermo2_(m)"]
+    pos_y_thermo2 = params["Position_y_thermo2_(m)"]
+    pos_x_thermo3 = params["Position_x_thermo3_(m)"]
+    pos_y_thermo3 = params["Position_y_thermo3_(m)"]
 
-    pos_x_TEC = params["Position_x_TEC"]
-    pos_y_TEC = params["Position_y_TEC"]
-    dim_x_TEC = params["Dimension_x_TEC"]
-    dim_y_TEC = params["Dimension_y_TEC"]
+    pos_x_TEC = params["Position_x_TEC_(m)"]
+    pos_y_TEC = params["Position_y_TEC_(m)"]
+    dim_x_TEC = params["Dimension_x_TEC_(m)"]
+    dim_y_TEC = params["Dimension_y_TEC_(m)"]
     coeff_a= params["Coefficient_couplage_a"]  # Ajout des coefficients
     coeff_b= params["Coefficient_couplage_b"]
 
@@ -75,7 +75,6 @@ def lancer_simulation(params, progressCallback):
     mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
 
     for i in range(num_frames):
-
         if i == num_frames / 2:
             #Effectue la fermeture à mi-chemin
             echelonCourant = 0
@@ -155,3 +154,4 @@ def lancer_simulation(params, progressCallback):
         writer.writerows(rows)
 
     print("CSV file saved successfully!")
+
