@@ -44,34 +44,41 @@ class SimulationInterface(ctk.CTk):
         }
 
         self.details_simulation = {
-            "Échelon_courant_(A)": "-0.7",
+            #"Échelon_courant_(A)": "-0.7",
             "Temps_simulation_(s)": "1600",
             "Position_x_perturbation": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
             "Position_y_perturbation": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
             "Puissance_perturbation_(W)": ctk.StringVar(value="0.3")   # Nouveau champ pour la puissance thermique
             
         }
+        self.details_simulation.update({
+            "Échelon_courant_1_(A)": "-0.7",
+            "Durée_échelon_1_(s)": "800",
+            "Échelon_courant_2_(A)": "0.5",
+            "Durée_échelon_2_(s)": "400"
+        })
 
-        # Créer les widgets
         self.create_widgets()
-
-        # Créer un cadre pour la barre de loading, le chronomètre et la phrase "temps restant"
+        # Créer un cadre pour la barre de loading, le chronomètre, les boutons et la phrase "temps restant"
         frame_status = ctk.CTkFrame(self)
         frame_status.grid(row=0, column=5, rowspan=10, padx=20, pady=10, sticky="ns")
 
-        ###Loading bar
+        # Ajouter les boutons directement dans ce cadre
+        ctk.CTkButton(frame_status, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
+        ctk.CTkButton(frame_status, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
+
+        # Texte d'état
         self.label = ctk.CTkLabel(frame_status, text="En attente de simulation", font=("Arial", 14))
         self.label.pack(pady=10, padx=20)
 
+        # Barre de progression
         self.progress_bar = ctk.CTkProgressBar(frame_status, orientation="horizontal")
         self.progress_bar.pack(pady=10, padx=20)
-        self.progress_bar.set(0)  # Initialize at 0%
+        self.progress_bar.set(0)  # Initialise à 0%
 
-        ###Chronomètre
+        # Chronomètre
         self.chrono_label = ctk.CTkLabel(frame_status, text="Temps écoulé : 0s", font=("Arial", 14))
         self.chrono_label.pack(pady=10, padx=20)
-
-
 
     def ajouter_image(self):
         """Ajoute une image explicative sous les paramètres avec un titre"""
@@ -105,6 +112,8 @@ class SimulationInterface(ctk.CTk):
         self.ajouter_image()
 
 
+
+
     def create_section(self, title, parameters, col, add_button=False):
         """Crée une section avec un titre et des entrées pour les paramètres."""
         frame = ctk.CTkFrame(self)
@@ -118,10 +127,10 @@ class SimulationInterface(ctk.CTk):
             ctk.CTkLabel(frame, text=key.replace("_", " ")).pack(anchor="w")
             ctk.CTkEntry(frame, textvariable=var).pack(pady=2)
 
-        # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
-        if add_button:
-            ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
-            ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
+        # # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
+        # if add_button:
+        #     ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
+        #     ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
     def update_progress(self, progress):
         """ Update the progress bar """
@@ -151,6 +160,10 @@ class SimulationInterface(ctk.CTk):
                 "y": params.pop("Position_y_perturbation"),
                 "puissance": params.pop("Puissance_perturbation_(W)")
             }]
+            params["Échelon_courant_1_(A)"] = params.pop("Échelon_courant_1_(A)")
+            params["Durée_échelon_1_(s)"] = params.pop("Durée_échelon_1_(s)")
+            params["Échelon_courant_2_(A)"] = params.pop("Échelon_courant_2_(A)")
+            params["Durée_échelon_2_(s)"] = params.pop("Durée_échelon_2_(s)")
 
             print("Paramètres récupérés :", params)
             

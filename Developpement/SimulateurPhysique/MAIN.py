@@ -18,9 +18,14 @@ def lancer_simulation(params, progressCallback):
     k = params["Conductivité_thermique"]
     rho = params["Densité"]
     T_init = params["Température_initiale"]
-    echelonCourant = params["Échelon_courant_(A)"]
+    #echelonCourant = params["Échelon_courant_(A)"]
     totalTime= params["Temps_simulation_(s)"]
     sources_chaleur = params["Sources_chaleur"]
+
+    echelonCourant1 = params["Échelon_courant_1_(A)"]
+    dureeEchelon1 = params["Durée_échelon_1_(s)"]
+    echelonCourant2 = params["Échelon_courant_2_(A)"]
+    dureeEchelon2 = params["Durée_échelon_2_(s)"]
 
 
     pos_x_thermo1 = params["Position_x_thermo1_(m)"]
@@ -54,7 +59,7 @@ def lancer_simulation(params, progressCallback):
     #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
 
     #Pour actuateur SIMPLE
-    TecA.updateMatQTECCourrant(echelonCourant)
+    TecA.updateMatQTECCourrant(echelonCourant1)
 
     totalTime = totalTime
     dTime = 1/363
@@ -75,9 +80,21 @@ def lancer_simulation(params, progressCallback):
     mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
 
     for i in range(num_frames):
-        if i == num_frames / 2:
-            #Effectue la fermeture à mi-chemin
-            echelonCourant = 0
+        # if i == num_frames / 2:
+        #     #Effectue la fermeture à mi-chemin
+        #     echelonCourant = 0
+
+        current_time = i * dTime
+
+        # Gestion de l'échelon de courant
+        if current_time <= dureeEchelon1:
+            TecA.updateMatQTECCourrant(echelonCourant1)
+
+        elif dureeEchelon1 < current_time <= (dureeEchelon1 + dureeEchelon2):
+            TecA.updateMatQTECCourrant(echelonCourant2)
+
+        else:
+            TecA.updateMatQTECCourrant(0)
         
         if i % (animationStep/plotRes) == 0:
             if i % animationStep == 0:
@@ -89,7 +106,7 @@ def lancer_simulation(params, progressCallback):
                 #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
 
                 #Pour actuateur SIMPLE
-                TecA.updateMatQTECCourrant(echelonCourant)
+                TecA.updateMatQTECCourrant(echelonCourant1)
 
                 #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
             
