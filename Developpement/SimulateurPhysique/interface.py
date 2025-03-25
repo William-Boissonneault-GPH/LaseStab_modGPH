@@ -144,11 +144,12 @@ class SimulationInterface(ctk.CTk):
                 "y": params.pop("Position_y_perturbation"),
                 "puissance": params.pop("Puissance_perturbation_(W)")
             }]
-            
+
             print("Paramètres récupérés :", params)
             
             self.label.configure(text="Simulation en cours...")
-            thread = Thread(target=lancer_simulation, args=(params, self.update_progress), daemon=True)
+            thread = Thread(target=self.run_simulation_with_error_handling, args=(params,), daemon=True)
+            
             # Lancer le chronomètre dans un thread séparé
             self.chrono_thread = Thread(target=self.start_chronometer, daemon=True)
             self.chrono_thread.start()
@@ -157,6 +158,18 @@ class SimulationInterface(ctk.CTk):
 
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Une erreur inattendue est survenue : {e}")
+
+    def run_simulation_with_error_handling(self, params):
+        """Lance la simulation et gère les erreurs éventuelles."""
+        try:
+            lancer_simulation(params, self.update_progress)
+        except Exception as e:
+            self.chrono_running = False
+            self.label.configure(text="Erreur lors de la simulation.")
+            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation : {e}")
+
 
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""
