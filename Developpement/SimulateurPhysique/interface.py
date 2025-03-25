@@ -6,6 +6,7 @@ from tkinter import messagebox
 from PIL import Image  
 from threading import Thread
 from tkinter import filedialog
+import time
 
 
 ctk.set_appearance_mode("dark")  
@@ -50,6 +51,10 @@ class SimulationInterface(ctk.CTk):
             "Puissance_perturbation_(W)": ctk.StringVar(value="0.3")   # Nouveau champ pour la puissance thermique
             
         }
+
+        self.chrono_label = ctk.CTkLabel(self, text="Temps écoulé : 0s", font=("Arial", 14))
+        self.chrono_label.grid(row=3, column=4, pady=5, padx=20, sticky="ew")
+
 
         # Créer les widgets
         self.create_widgets()
@@ -118,6 +123,9 @@ class SimulationInterface(ctk.CTk):
         """ Update the progress bar """
         self.progress_bar.set(progress/100)
         self.label.configure(text="Temps restant : [Estime par derivé]")
+        if progress >= 100:
+            self.chrono_running = False
+            self.label.configure(text="Simulation terminée !")
 
     def lancer_simulation_interface(self):
         """Récupère les paramètres et lance la simulation."""
@@ -141,6 +149,10 @@ class SimulationInterface(ctk.CTk):
             
             self.label.configure(text="Simulation en cours...")
             thread = Thread(target=lancer_simulation, args=(params, self.update_progress), daemon=True)
+            # Lancer le chronomètre dans un thread séparé
+            self.chrono_thread = Thread(target=self.start_chronometer, daemon=True)
+            self.chrono_thread.start()
+
             thread.start()
 
         except ValueError:
@@ -197,6 +209,18 @@ class SimulationInterface(ctk.CTk):
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Impossible de charger le fichier JSON.\n{e}")
+    
+
+    def start_chronometer(self):
+        """Démarre le chronomètre et met à jour l'affichage du temps écoulé."""
+        self.chrono_running = True
+        self.start_time = time.time()
+
+        while self.chrono_running:
+            elapsed_time = int(time.time() - self.start_time)
+            self.chrono_label.configure(text=f"Temps écoulé : {elapsed_time}s")
+            time.sleep(1)  # Attendre 1 seconde avant la mise à jour
+
 
 
 if __name__ == "__main__":
