@@ -200,7 +200,7 @@ def check_stability():
     #print(f"Écart-type: {std_dev:.4f}, Pente: {slope:.4f}")  # 🔍 Debugging console
 
     # Condition de stabilité : faible variation et faible pente
-    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.002) and abs(float(np.average(recent_temps)) - float(lastSetpoint)) < 0.4
+    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.001) and abs(float(np.average(recent_temps)) - float(lastSetpoint)) < 0.4
 
     # Mise à jour de la LED
     update_stability_led(is_stable)
