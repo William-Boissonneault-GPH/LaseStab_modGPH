@@ -99,11 +99,12 @@ lastSetpoint = 999
 # Create a plot for real-time data
 plt.rcParams["legend.fontsize"] = 12 # Forcer la taille de la légende globalement
 fig, ax = plt.subplots(figsize=(15,10), dpi=100)
-scatter_temp1 = ax.scatter([], [], label='Temperature Thermistance 1', s=20)
-scatter_temp2 = ax.scatter([], [], label='Temperature Thermistance 2', s=20)
-scatter_temp3 = ax.scatter([], [], label='Temperature estimée Thermistance 3', s=20)
-scatter_temp4 = ax.scatter([], [], label='Temperature mesurée Thermistance 3', s=20)
-scatter_setpoint = ax.scatter([], [], label='Consigne Température', s=10, color='black')
+line_temp1, = ax.plot([], [], label='Température Thermistance 1', marker='o', linestyle='-', markersize=6)
+line_temp2, = ax.plot([], [], label='Température Thermistance 2', marker='s', linestyle='-', markersize=6)
+line_temp3, = ax.plot([], [], label='Température estimée T3', marker='^', linestyle='-', markersize=6)
+line_temp4, = ax.plot([], [], label='Température mesurée T3', marker='D', linestyle='-', markersize=6)
+line_setpoint, = ax.plot([], [], label='Consigne', marker='x', linestyle='--', color='black')
+
 
 
 ax.set_xlim(0, 100)  # Time window for the plot (can be adjusted)
@@ -112,8 +113,6 @@ ax.set_xlabel("Temps (s)", fontsize=16, fontweight='bold')  # Titre de l'axe X
 ax.set_ylabel("Température (°C)", fontsize=16, fontweight='bold')  # Titre de l'axe Y
 ax.tick_params(axis='both', labelsize=14)  # Change la taille des étiquettes des axes
 ax.legend()
-ax.grid(which='both')
-ax.grid(which='minor', alpha=0.2, linestyle='--')
 ax.set_title("Évolution de la Température des Thermistances", fontsize=18, fontweight='bold')
 plt.get_current_fig_manager().window.geometry("+1350+10")
 
@@ -153,17 +152,19 @@ def update_data(frame):
                     temp4_data = temp4_data[1:]
                     setpoint_data = setpoint_data[1:]
 
+                
+
             except ValueError:
                 raise  # Ignore invalid data
         else:
             return
         
     # Ensure that offsets is a 2D array: we create a list of (time, temp) pairs
-    scatter_temp1.set_offsets(np.column_stack((time_data, temp1_data)))
-    scatter_temp2.set_offsets(np.column_stack((time_data, temp2_data)))
-    scatter_temp3.set_offsets(np.column_stack((time_data, temp3_data)))
-    scatter_temp4.set_offsets(np.column_stack((time_data, temp4_data)))
-    scatter_setpoint.set_offsets(np.column_stack((time_data, setpoint_data)))  # Ajout de la consigne utilisateur
+    line_temp1.set_data(time_data, temp1_data)
+    line_temp2.set_data(time_data, temp2_data)
+    line_temp3.set_data(time_data, temp3_data)
+    line_temp4.set_data(time_data, temp4_data)
+    line_setpoint.set_data(time_data, setpoint_data)
 
     if frame%10 == 0 and len(time_data) > 0:
         ax.set_xlim(max(time_data)-90, max(time_data)+10)  # Time axis dynamically adjusts
@@ -172,7 +173,7 @@ def update_data(frame):
     
      # Vérifier la stabilité à chaque mise à jour des données
     check_stability()
-    return scatter_temp1, scatter_temp2, scatter_temp3, scatter_temp4, scatter_setpoint
+    return line_temp1, line_temp2, line_temp3, line_temp4, line_setpoint
 
 is_stable = False  # Indicateur de stabilité (False au départ)
 

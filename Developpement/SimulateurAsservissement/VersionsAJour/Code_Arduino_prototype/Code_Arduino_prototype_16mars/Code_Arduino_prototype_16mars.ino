@@ -122,15 +122,8 @@ float Regulateur() {
   COMMANDE[0] = Commande;
   //Anti wind up flag d'erreur?
    // 🔍 Afficher la valeur actuelle du gain dans le port série
-  //Serial.print("GAINREG utilisé  dans la fonction regulateur(): ");
-  //Serial.println(GainREG);  // ➤ Cela sera lu par Python !
-  //Serial.println("valeurs regulateur utilisé  dans la fonction regulateur(): ");
-  //Serial.println(REG[0], 5); Serial.println(",");
-  //Serial.println(REG[1], 5); Serial.println(",");
-  //Serial.println(REG[2], 5); Serial.println(",");
-  //Serial.println(REG[3], 5); Serial.println(",");
-  //Serial.println(REG[4], 5); Serial.println(",");
-  //Serial.println(REG[5], 5);
+  Serial.print("GAINREG utilisé  dans la fonction regulateur(): ");
+  Serial.println(GainREG);  // ➤ Cela sera lu par Python !
 
   return Commande;
 };
@@ -292,8 +285,8 @@ void loop() {
       }
 
       GainREG = newGain;  // ✅ Mise à jour sans restriction
-      //Serial.print("✅ Nouveau GAINREG appliqué : ");
-      //Serial.println(GainREG);
+      Serial.print("✅ Nouveau GAINREG appliqué : ");
+      Serial.println(GainREG);
     }
 
      // ✅ Intégration de la gestion du vecteur REG[]
