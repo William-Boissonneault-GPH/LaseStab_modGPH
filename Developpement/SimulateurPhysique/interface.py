@@ -20,9 +20,9 @@ class SimulationInterface(ctk.CTk):
 
         # Définition des paramètres par section
         self.thermistances = {
-            "Position_x_thermo1_(m)": "0.10475", "Position_y_thermo1_(m)": "0.031",
-            "Position_x_thermo2_(m)": "0.05835", "Position_y_thermo2_(m)": "0.031",
-            "Position_x_thermo3_(m)": "0.01225", "Position_y_thermo3_(m)": "0.031"
+            "Position_x_T1_(m)": "0.10475", "Position_y_T1_(m)": "0.031",
+            "Position_x_T2_(m)": "0.05835", "Position_y_T2_(m)": "0.031",
+            "Position_x_T3_(m)": "0.01225", "Position_y_T3_(m)": "0.031"
         }
 
         self.tec = {
@@ -34,20 +34,20 @@ class SimulationInterface(ctk.CTk):
 
         self.plaque = {
             "Dimension_x_plaque_(m)": "0.11875", "Dimension_y_plaque_(m)": "0.062",
-            "Dimension_z_plaque_(m)": "0.0016", "Coéfficient_convection": "14",
-            "Température_initiale": "24"
+            "Dimension_z_plaque_(m)": "0.0016", "Coéfficient_convection_(W/m²K)": "14",
+            "Température_initiale_(°C)": "24"
         }
 
         self.proprietes_materiau = {
-            "Conductivité_thermique": "180", "Densité": "2700",
-            "Capacité_thermique": "900"
+            "Conductivité_thermique_(W/mK)": "180", "Densité_(kg/m³)": "2700",
+            "Capacité_thermique_(J/KgK)": "900"
         }
 
         self.details_simulation = {
             #"Échelon_courant_(A)": "-0.7",
             "Temps_simulation_(s)": "1600",
-            "Position_x_perturbation": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
-            "Position_y_perturbation": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
+            "Position_x_perturbation_(m)": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
+            "Position_y_perturbation_(m)": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
             "Puissance_perturbation_(W)": ctk.StringVar(value="0.3")   # Nouveau champ pour la puissance thermique
             
         }
@@ -95,7 +95,7 @@ class SimulationInterface(ctk.CTk):
             titre.pack(pady=(10, 5))
 
             # Charger et afficher l’image
-            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(650, 400))  # Augmente la taille
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(610, 320))  # Augmente la taille
             label_image = ctk.CTkLabel(frame_image, image=image, text="")
             label_image.pack(pady=5)
 
@@ -234,8 +234,8 @@ class SimulationInterface(ctk.CTk):
             # Remettre les valeurs des perturbations
             if "Sources_chaleur" in params and len(params["Sources_chaleur"]) > 0:
                 source = params["Sources_chaleur"][0]
-                self.details_simulation["Position_x_perturbation"].set(str(source["x"]))
-                self.details_simulation["Position_y_perturbation"].set(str(source["y"]))
+                self.details_simulation["Position_x_perturbation(m)"].set(str(source["x"]))
+                self.details_simulation["Position_y_perturbation(m)"].set(str(source["y"]))
                 self.details_simulation["Puissance_perturbation_(W)"].set(str(source["puissance"]))
 
 

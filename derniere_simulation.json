@@ -19,16 +19,16 @@
     "Conductivit\u00e9_thermique": 180.0,
     "Densit\u00e9": 2700.0,
     "Capacit\u00e9_thermique": 900.0,
-    "Temps_simulation_(s)": 1600.0,
+    "Temps_simulation_(s)": 100.0,
     "\u00c9chelon_courant_1_(A)": -0.7,
-    "Dur\u00e9e_\u00e9chelon_1_(s)": 800.0,
+    "Dur\u00e9e_\u00e9chelon_1_(s)": 50.0,
     "\u00c9chelon_courant_2_(A)": 0.5,
-    "Dur\u00e9e_\u00e9chelon_2_(s)": 800.0,
+    "Dur\u00e9e_\u00e9chelon_2_(s)": 50.0,
     "Sources_chaleur": [
         {
             "x": 0.05,
-            "y": 0.01,
-            "puissance": 0.1
+            "y": 0.03,
+            "puissance": 0.3
         }
     ]
 }
