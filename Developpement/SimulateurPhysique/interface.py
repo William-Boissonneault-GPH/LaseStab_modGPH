@@ -6,6 +6,7 @@ from tkinter import messagebox
 from PIL import Image  
 from threading import Thread
 from tkinter import filedialog
+import time
 
 
 ctk.set_appearance_mode("dark")  
@@ -19,50 +20,65 @@ class SimulationInterface(ctk.CTk):
 
         # Définition des paramètres par section
         self.thermistances = {
-            "Position_x_thermo1": "0.10475", "Position_y_thermo1": "0.031",
-            "Position_x_thermo2": "0.05835", "Position_y_thermo2": "0.031",
-            "Position_x_thermo3": "0.01225", "Position_y_thermo3": "0.031"
+            "Position_x_T1_(m)": "0.10475", "Position_y_T1_(m)": "0.031",
+            "Position_x_T2_(m)": "0.05835", "Position_y_T2_(m)": "0.031",
+            "Position_x_T3_(m)": "0.01225", "Position_y_T3_(m)": "0.031"
         }
 
         self.tec = {
-            "Position_x_TEC": "0.096", "Position_y_TEC": "0.031",
-            "Dimension_x_TEC": "0.015", "Dimension_y_TEC": "0.0156",
+            "Position_x_TEC_(m)": "0.096", "Position_y_TEC_(m)": "0.031",
+            "Dimension_x_TEC_(m)": "0.015", "Dimension_y_TEC_(m)": "0.0156",
             "Coefficient_couplage_a": "0.1493",  
             "Coefficient_couplage_b": "1.3291"
         }
 
         self.plaque = {
-            "Dimension_x_plaque": "0.11875", "Dimension_y_plaque": "0.062",
-            "Dimension_z_plaque": "0.0016", "Coéfficient_convection": "14",
-            "Température_initiale": "24"
+            "Dimension_x_plaque_(m)": "0.11875", "Dimension_y_plaque_(m)": "0.062",
+            "Dimension_z_plaque_(m)": "0.0016", "Coéfficient_convection_(W/m²K)": "14",
+            "Température_initiale_(°C)": "24"
         }
 
         self.proprietes_materiau = {
-            "Conductivité_thermique": "180", "Densité": "2700",
-            "Capacité_thermique": "900"
+            "Conductivité_thermique_(W/mK)": "180", "Densité_(kg/m³)": "2700",
+            "Capacité_thermique_(J/KgK)": "900"
         }
 
         self.details_simulation = {
-            "Échelon_courant_(A)": "-0.7",
+            #"Échelon_courant_(A)": "-0.7",
             "Temps_simulation_(s)": "1600",
-            "Position_x_perturbation": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
-            "Position_y_perturbation": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
+            "Position_x_perturbation_(m)": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
+            "Position_y_perturbation_(m)": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
             "Puissance_perturbation_(W)": ctk.StringVar(value="0.3")   # Nouveau champ pour la puissance thermique
             
         }
+        self.details_simulation.update({
+            "Échelon_courant_1_(A)": "-0.7",
+            "Durée_échelon_1_(s)": "800",
+            "Échelon_courant_2_(A)": "0.5",
+            "Durée_échelon_2_(s)": "400"
+        })
 
-        # Créer les widgets
         self.create_widgets()
+        # Créer un cadre pour la barre de loading, le chronomètre, les boutons et la phrase "temps restant"
+        frame_status = ctk.CTkFrame(self)
+        frame_status.grid(row=0, column=5, rowspan=10, padx=20, pady=10, sticky="ns")
 
-        ###Loading bar
-        # Create a label
-        self.label = ctk.CTkLabel(self, text="En attente de simulation", font=("Arial", 14))
-        self.label.grid(row=1, column=4, pady=5, padx=20, sticky="ew")
+        # Ajouter les boutons directement dans ce cadre
+        ctk.CTkButton(frame_status, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
+        ctk.CTkButton(frame_status, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
-        # Create the progress bar
-        self.progress_bar = ctk.CTkProgressBar(self, orientation="horizontal")
-        self.progress_bar.grid(row=2, column=4, pady=5, padx=20, sticky="ew")
-        self.progress_bar.set(0)  # Initialize at 0%
+        # Texte d'état
+        self.label = ctk.CTkLabel(frame_status, text="En attente de simulation", font=("Arial", 14))
+        self.label.pack(pady=10, padx=20)
+
+        # Barre de progression
+        self.progress_bar = ctk.CTkProgressBar(frame_status, orientation="horizontal")
+        self.progress_bar.pack(pady=10, padx=20)
+        self.progress_bar.set(0)  # Initialise à 0%
+
+        # Chronomètre
+        self.chrono_label = ctk.CTkLabel(frame_status, text="Temps écoulé : 0s", font=("Arial", 14))
+        self.chrono_label.pack(pady=10, padx=20)
 
     def ajouter_image(self):
         """Ajoute une image explicative sous les paramètres avec un titre"""
@@ -79,7 +95,7 @@ class SimulationInterface(ctk.CTk):
             titre.pack(pady=(10, 5))
 
             # Charger et afficher l’image
-            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(630, 360))  # Augmente la taille
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(610, 320))  # Augmente la taille
             label_image = ctk.CTkLabel(frame_image, image=image, text="")
             label_image.pack(pady=5)
 
@@ -96,6 +112,8 @@ class SimulationInterface(ctk.CTk):
         self.ajouter_image()
 
 
+
+
     def create_section(self, title, parameters, col, add_button=False):
         """Crée une section avec un titre et des entrées pour les paramètres."""
         frame = ctk.CTkFrame(self)
@@ -109,18 +127,24 @@ class SimulationInterface(ctk.CTk):
             ctk.CTkLabel(frame, text=key.replace("_", " ")).pack(anchor="w")
             ctk.CTkEntry(frame, textvariable=var).pack(pady=2)
 
-        # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
-        if add_button:
-            ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
-            ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
+        # # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
+        # if add_button:
+        #     ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
+        #     ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
     def update_progress(self, progress):
         """ Update the progress bar """
         self.progress_bar.set(progress/100)
         self.label.configure(text="Temps restant : [Estime par derivé]")
 
+        if progress >= 100:
+            self.chrono_running = False
+            self.label.configure(text="Simulation terminée !")
+
+
     def lancer_simulation_interface(self):
         """Récupère les paramètres et lance la simulation."""
+
         try:
             params = {**self.get_values(self.thermistances),
                     **self.get_values(self.tec),
@@ -136,15 +160,37 @@ class SimulationInterface(ctk.CTk):
                 "y": params.pop("Position_y_perturbation"),
                 "puissance": params.pop("Puissance_perturbation_(W)")
             }]
-            
+            params["Échelon_courant_1_(A)"] = params.pop("Échelon_courant_1_(A)")
+            params["Durée_échelon_1_(s)"] = params.pop("Durée_échelon_1_(s)")
+            params["Échelon_courant_2_(A)"] = params.pop("Échelon_courant_2_(A)")
+            params["Durée_échelon_2_(s)"] = params.pop("Durée_échelon_2_(s)")
+
             print("Paramètres récupérés :", params)
             
             self.label.configure(text="Simulation en cours...")
-            thread = Thread(target=lancer_simulation, args=(params, self.update_progress), daemon=True)
+
+            thread = Thread(target=self.run_simulation_with_error_handling, args=(params,), daemon=True)
+            
+            # Lancer le chronomètre dans un thread séparé
+            self.chrono_thread = Thread(target=self.start_chronometer, daemon=True)
+            self.chrono_thread.start()
+
             thread.start()
 
         except ValueError:
             messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Une erreur inattendue est survenue : {e}")
+
+    def run_simulation_with_error_handling(self, params):
+        """Lance la simulation et gère les erreurs éventuelles."""
+        try:
+            lancer_simulation(params, self.update_progress)
+        except Exception as e:
+            self.chrono_running = False
+            self.label.configure(text="Erreur lors de la simulation.")
+            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation : {e}")
+
 
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""
@@ -188,8 +234,8 @@ class SimulationInterface(ctk.CTk):
             # Remettre les valeurs des perturbations
             if "Sources_chaleur" in params and len(params["Sources_chaleur"]) > 0:
                 source = params["Sources_chaleur"][0]
-                self.details_simulation["Position_x_perturbation"].set(str(source["x"]))
-                self.details_simulation["Position_y_perturbation"].set(str(source["y"]))
+                self.details_simulation["Position_x_perturbation(m)"].set(str(source["x"]))
+                self.details_simulation["Position_y_perturbation(m)"].set(str(source["y"]))
                 self.details_simulation["Puissance_perturbation_(W)"].set(str(source["puissance"]))
 
 
@@ -197,6 +243,17 @@ class SimulationInterface(ctk.CTk):
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Impossible de charger le fichier JSON.\n{e}")
+    
+
+    def start_chronometer(self):
+        """Démarre le chronomètre et met à jour l'affichage du temps écoulé."""
+        self.chrono_running = True
+        self.start_time = time.time()
+
+        while self.chrono_running:
+            elapsed_time = int(time.time() - self.start_time)
+            self.chrono_label.configure(text=f"Temps écoulé : {elapsed_time}s")
+            time.sleep(1)  # Attendre 1 seconde avant la mise à jour
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ csv_file = None
 SAVE_FILE = "config_sauvegarde.json"
 
 # Define serial port and parameters
-SERIAL_PORT = 'COM3'  # Update this with your Arduino's serial port
+SERIAL_PORT = 'COM13'  # Update this with your Arduino's serial port
 BAUD_RATE = 9600
 arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 
