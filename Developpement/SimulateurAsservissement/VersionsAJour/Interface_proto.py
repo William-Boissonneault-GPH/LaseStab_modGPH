@@ -11,7 +11,7 @@ csv_writer = None
 csv_file = None
 
 # Define serial port and parameters
-SERIAL_PORT = 'COM3'  # Update this with your Arduino's serial port
+SERIAL_PORT = 'COM13'  # Update this with your Arduino's serial port
 BAUD_RATE = 9600
 arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 
@@ -115,6 +115,7 @@ def update_data(frame):
     
     if arduino.in_waiting > 0:
         data = arduino.readline().decode('utf-8').strip()
+        print(data)
         if not "," in data:  # Filtre les lignes non numériques (comme les confirmations)
             print(f"📩 Message Arduino : {data}")
 
@@ -133,7 +134,7 @@ def update_data(frame):
                     csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint, last_point])
                 
                 # Keep data within the plot window limit
-                if len(time_data) > 100:
+                if len(time_data) > 400:
                     time_data = time_data[1:]
                     temp1_data = temp1_data[1:]
                     temp2_data = temp2_data[1:]
@@ -187,7 +188,7 @@ def check_stability():
     #print(f"Écart-type: {std_dev:.4f}, Pente: {slope:.4f}")  # 🔍 Debugging console
 
     # Condition de stabilité : faible variation et faible pente
-    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.005)
+    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.005) and abs(np.average(temp3_data[-20:]) - float(lastSetpoint)) < 0.5
 
     # Mise à jour de la LED
     update_stability_led(is_stable)

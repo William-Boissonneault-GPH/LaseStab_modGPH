@@ -19,13 +19,13 @@
     "Conductivit\u00e9_thermique": 180.0,
     "Densit\u00e9": 2700.0,
     "Capacit\u00e9_thermique": 900.0,
-    "\u00c9chelon_courant_(A)": -0.7,
-    "Temps_simulation_(s)": 100.0,
+    "\u00c9chelon_courant_(A)": 0.57,
+    "Temps_simulation_(s)": 500.0,
     "Sources_chaleur": [
         {
-            "x": 0.0,
-            "y": 0.0,
-            "puissance": 0.0
+            "x": 0.08155,
+            "y": 0.031,
+            "puissance": 0.7
         }
     ]
 }
