@@ -99,10 +99,10 @@ lastSetpoint = 999
 # Create a plot for real-time data
 plt.rcParams["legend.fontsize"] = 12 # Forcer la taille de la légende globalement
 fig, ax = plt.subplots(figsize=(15,10), dpi=100)
-line_temp1, = ax.plot([], [], label='Température Thermistance 1', marker='o', linestyle='None', markersize=6)
-line_temp2, = ax.plot([], [], label='Température Thermistance 2', marker='s', linestyle='None', markersize=6)
-line_temp3, = ax.plot([], [], label='Température estimée T3', marker='^', linestyle='None', markersize=6)
-line_temp4, = ax.plot([], [], label='Température mesurée T3', marker='D', linestyle='None', markersize=6)
+line_temp1, = ax.plot([], [], label='Température Thermistance 1', marker='o', linestyle='None', markersize=4)
+line_temp2, = ax.plot([], [], label='Température Thermistance 2', marker='s', linestyle='None', markersize=4)
+line_temp3, = ax.plot([], [], label='Température estimée T3', marker='^', linestyle='None', markersize=4)
+line_temp4, = ax.plot([], [], label='Température mesurée T3', marker='D', linestyle='None', markersize=4)
 line_setpoint, = ax.plot([], [], label='Consigne', marker='x', linestyle='None', color='black')
 
 
@@ -140,7 +140,7 @@ def update_data(frame):
                 setpoint_data.append(float(lastSetpoint))
                 # Log data to CSV
                 if csv_writer:
-                    csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint,
+                    csv_writer.writerow([current_time, lastSetpoint, lastCommand, temp1, temp2, temp4, temp3, lastError, 
                                           stability_reached_time if stability_logged else ""])
                 
                 # Keep data within the plot window limit
@@ -329,7 +329,7 @@ def save_csv():
         # Open the file in write mode
         csv_file = open(file_path, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(['Time', 'Temp1', 'Temp2', 'Temp3', 'Temp4', 'Erreur', 'Commande PWM', 'Setpoint', 'Stabilité atteinte (s)'])
+        csv_writer.writerow(['Time','Setpoint', 'Commande PWM', 'Temp1', 'Temp2', 'Temp3', 'Temp3 estimé', 'Erreur',  'Stabilité atteinte (s)'])
         messagebox.showinfo("Info", f"CSV file will be saved to: {file_path}")
 
 # Enregistrer les dernieres valeurs entrees par l'utilisateur
@@ -419,7 +419,7 @@ reset_button = tk.Button(frame_reg, text="Réinitialiser les réglages", font=("
 reset_button.pack(pady=20)
 
 # 📌 Bouton d’activation du régulateur en bas, bien centré
-bottom_frame = tk.Frame(page_regulateur)
+bottom_frame = tk.Frame(page_temperature)
 bottom_frame.pack(side="bottom", pady=30)  # positionnement en bas de la page
 
 # 🔹 Configuration du bouton au démarrage
