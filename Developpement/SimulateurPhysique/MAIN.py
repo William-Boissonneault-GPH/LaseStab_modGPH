@@ -10,30 +10,35 @@ def lancer_simulation(params, progressCallback):
     """Lance la simulation thermique avec les paramètres fournis par l'interface."""
     print("🟡 Début de la simulation...")
     # Récupération des paramètres depuis l'interface
-    dim_x = params["Dimension_x_plaque"]
-    dim_y = params["Dimension_y_plaque"]
-    dim_z = params["Dimension_z_plaque"]
+    dim_x = params["Dimension_x_plaque_(m)"]
+    dim_y = params["Dimension_y_plaque_(m)"]
+    dim_z = params["Dimension_z_plaque_(m)"]
     h = params["Coéfficient_convection"]
     cp = params["Capacité_thermique"]
     k = params["Conductivité_thermique"]
     rho = params["Densité"]
     T_init = params["Température_initiale"]
-    echelonCourant = params["Échelon_courant_(A)"]
+    #echelonCourant = params["Échelon_courant_(A)"]
     totalTime= params["Temps_simulation_(s)"]
     sources_chaleur = params["Sources_chaleur"]
 
+    echelonCourant1 = params["Échelon_courant_1_(A)"]
+    dureeEchelon1 = params["Durée_échelon_1_(s)"]
+    echelonCourant2 = params["Échelon_courant_2_(A)"]
+    dureeEchelon2 = params["Durée_échelon_2_(s)"]
 
-    pos_x_thermo1 = params["Position_x_thermo1"]
-    pos_y_thermo1 = params["Position_y_thermo1"]
-    pos_x_thermo2 = params["Position_x_thermo2"]
-    pos_y_thermo2 = params["Position_y_thermo2"]
-    pos_x_thermo3 = params["Position_x_thermo3"]
-    pos_y_thermo3 = params["Position_y_thermo3"]
 
-    pos_x_TEC = params["Position_x_TEC"]
-    pos_y_TEC = params["Position_y_TEC"]
-    dim_x_TEC = params["Dimension_x_TEC"]
-    dim_y_TEC = params["Dimension_y_TEC"]
+    pos_x_thermo1 = params["Position_x_thermo1_(m)"]
+    pos_y_thermo1 = params["Position_y_thermo1_(m)"]
+    pos_x_thermo2 = params["Position_x_thermo2_(m)"]
+    pos_y_thermo2 = params["Position_y_thermo2_(m)"]
+    pos_x_thermo3 = params["Position_x_thermo3_(m)"]
+    pos_y_thermo3 = params["Position_y_thermo3_(m)"]
+
+    pos_x_TEC = params["Position_x_TEC_(m)"]
+    pos_y_TEC = params["Position_y_TEC_(m)"]
+    dim_x_TEC = params["Dimension_x_TEC_(m)"]
+    dim_y_TEC = params["Dimension_y_TEC_(m)"]
     coeff_a= params["Coefficient_couplage_a"]  # Ajout des coefficients
     coeff_b= params["Coefficient_couplage_b"]
 
@@ -54,7 +59,7 @@ def lancer_simulation(params, progressCallback):
     #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
 
     #Pour actuateur SIMPLE
-    TecA.updateMatQTECCourrant(echelonCourant)
+    TecA.updateMatQTECCourrant(echelonCourant1)
 
     totalTime = totalTime
     dTime = 1/363
@@ -75,10 +80,21 @@ def lancer_simulation(params, progressCallback):
     mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
 
     for i in range(num_frames):
+        # if i == num_frames / 2:
+        #     #Effectue la fermeture à mi-chemin
+        #     echelonCourant = 0
 
-        if i == num_frames / 2:
-            #Effectue la fermeture à mi-chemin
-            echelonCourant = 0
+        current_time = i * dTime
+
+        # Gestion de l'échelon de courant
+        if current_time <= dureeEchelon1:
+            TecA.updateMatQTECCourrant(echelonCourant1)
+
+        elif dureeEchelon1 < current_time <= (dureeEchelon1 + dureeEchelon2):
+            TecA.updateMatQTECCourrant(echelonCourant2)
+
+        else:
+            TecA.updateMatQTECCourrant(0)
         
         if i % (animationStep/plotRes) == 0:
             if i % animationStep == 0:
@@ -90,7 +106,7 @@ def lancer_simulation(params, progressCallback):
                 #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
 
                 #Pour actuateur SIMPLE
-                TecA.updateMatQTECCourrant(echelonCourant)
+                TecA.updateMatQTECCourrant(echelonCourant1)
 
                 #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
             
@@ -155,3 +171,4 @@ def lancer_simulation(params, progressCallback):
         writer.writerows(rows)
 
     print("CSV file saved successfully!")
+
