@@ -14,7 +14,7 @@ csv_file = None
 SAVE_FILE = "config_sauvegarde.json"
 
 # Define serial port and parameters
-SERIAL_PORT = 'COM13'  # Update this with your Arduino's serial port
+SERIAL_PORT = 'COM3'  # Update this with your Arduino's serial port
 BAUD_RATE = 9600
 arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 
@@ -99,11 +99,11 @@ lastSetpoint = 999
 # Create a plot for real-time data
 plt.rcParams["legend.fontsize"] = 12 # Forcer la taille de la légende globalement
 fig, ax = plt.subplots(figsize=(15,10), dpi=100)
-line_temp1, = ax.plot([], [], label='Température Thermistance 1', marker='o', linestyle='-', markersize=6)
-line_temp2, = ax.plot([], [], label='Température Thermistance 2', marker='s', linestyle='-', markersize=6)
-line_temp3, = ax.plot([], [], label='Température estimée T3', marker='^', linestyle='-', markersize=6)
-line_temp4, = ax.plot([], [], label='Température mesurée T3', marker='D', linestyle='-', markersize=6)
-line_setpoint, = ax.plot([], [], label='Consigne', marker='x', linestyle='--', color='black')
+line_temp1, = ax.plot([], [], label='Température Thermistance 1', marker='o', linestyle='None', markersize=6)
+line_temp2, = ax.plot([], [], label='Température Thermistance 2', marker='s', linestyle='None', markersize=6)
+line_temp3, = ax.plot([], [], label='Température estimée T3', marker='^', linestyle='None', markersize=6)
+line_temp4, = ax.plot([], [], label='Température mesurée T3', marker='D', linestyle='None', markersize=6)
+line_setpoint, = ax.plot([], [], label='Consigne', marker='x', linestyle='None', color='black')
 
 
 
