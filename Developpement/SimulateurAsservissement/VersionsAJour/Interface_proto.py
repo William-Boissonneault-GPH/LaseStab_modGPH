@@ -14,7 +14,7 @@ csv_file = None
 SAVE_FILE = "config_sauvegarde.json"
 
 # Define serial port and parameters
-SERIAL_PORT = 'COM13'  # Update this with your Arduino's serial port
+SERIAL_PORT = 'COM3'  # Update this with your Arduino's serial port
 BAUD_RATE = 9600
 arduino = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 
@@ -99,11 +99,12 @@ lastSetpoint = 999
 # Create a plot for real-time data
 plt.rcParams["legend.fontsize"] = 12 # Forcer la taille de la légende globalement
 fig, ax = plt.subplots(figsize=(15,10), dpi=100)
-scatter_temp1 = ax.scatter([], [], label='Temperature Thermistance 1', s=20)
-scatter_temp2 = ax.scatter([], [], label='Temperature Thermistance 2', s=20)
-scatter_temp3 = ax.scatter([], [], label='Temperature estimée Thermistance 3', s=20)
-scatter_temp4 = ax.scatter([], [], label='Temperature mesurée Thermistance 3', s=20)
-scatter_setpoint = ax.scatter([], [], label='Consigne Température', s=10, color='black')
+line_temp1, = ax.plot([], [], label='Température Thermistance 1', marker='o', linestyle='None', markersize=4)
+line_temp2, = ax.plot([], [], label='Température Thermistance 2', marker='s', linestyle='None', markersize=4)
+line_temp3, = ax.plot([], [], label='Température estimée T3', marker='^', linestyle='None', markersize=4)
+line_temp4, = ax.plot([], [], label='Température mesurée T3', marker='D', linestyle='None', markersize=4)
+line_setpoint, = ax.plot([], [], label='Consigne', marker='x', linestyle='None', color='black')
+
 
 
 ax.set_xlim(0, 100)  # Time window for the plot (can be adjusted)
@@ -112,8 +113,6 @@ ax.set_xlabel("Temps (s)", fontsize=16, fontweight='bold')  # Titre de l'axe X
 ax.set_ylabel("Température (°C)", fontsize=16, fontweight='bold')  # Titre de l'axe Y
 ax.tick_params(axis='both', labelsize=14)  # Change la taille des étiquettes des axes
 ax.legend()
-ax.grid(which='both')
-ax.grid(which='minor', alpha=0.2, linestyle='--')
 ax.set_title("Évolution de la Température des Thermistances", fontsize=18, fontweight='bold')
 plt.get_current_fig_manager().window.geometry("+1350+10")
 
@@ -141,7 +140,7 @@ def update_data(frame):
                 setpoint_data.append(float(lastSetpoint))
                 # Log data to CSV
                 if csv_writer:
-                    csv_writer.writerow([current_time, temp1, temp2, temp3, temp4, lastError, lastCommand, lastSetpoint,
+                    csv_writer.writerow([current_time, lastSetpoint, lastCommand, temp1, temp2, temp4, temp3, lastError, 
                                           stability_reached_time if stability_logged else ""])
                 
                 # Keep data within the plot window limit
@@ -153,17 +152,19 @@ def update_data(frame):
                     temp4_data = temp4_data[1:]
                     setpoint_data = setpoint_data[1:]
 
+                
+
             except ValueError:
                 raise  # Ignore invalid data
         else:
             return
         
     # Ensure that offsets is a 2D array: we create a list of (time, temp) pairs
-    scatter_temp1.set_offsets(np.column_stack((time_data, temp1_data)))
-    scatter_temp2.set_offsets(np.column_stack((time_data, temp2_data)))
-    scatter_temp3.set_offsets(np.column_stack((time_data, temp3_data)))
-    scatter_temp4.set_offsets(np.column_stack((time_data, temp4_data)))
-    scatter_setpoint.set_offsets(np.column_stack((time_data, setpoint_data)))  # Ajout de la consigne utilisateur
+    line_temp1.set_data(time_data, temp1_data)
+    line_temp2.set_data(time_data, temp2_data)
+    line_temp3.set_data(time_data, temp3_data)
+    line_temp4.set_data(time_data, temp4_data)
+    line_setpoint.set_data(time_data, setpoint_data)
 
     if frame%10 == 0 and len(time_data) > 0:
         ax.set_xlim(max(time_data)-90, max(time_data)+10)  # Time axis dynamically adjusts
@@ -172,7 +173,7 @@ def update_data(frame):
     
      # Vérifier la stabilité à chaque mise à jour des données
     check_stability()
-    return scatter_temp1, scatter_temp2, scatter_temp3, scatter_temp4, scatter_setpoint
+    return line_temp1, line_temp2, line_temp3, line_temp4, line_setpoint
 
 is_stable = False  # Indicateur de stabilité (False au départ)
 
@@ -199,7 +200,7 @@ def check_stability():
     #print(f"Écart-type: {std_dev:.4f}, Pente: {slope:.4f}")  # 🔍 Debugging console
 
     # Condition de stabilité : faible variation et faible pente
-    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.002) and abs(float(np.average(recent_temps)) - float(lastSetpoint)) < 0.4
+    is_stable = std_dev < 0.1 and (abs(slope) < 0.005 and abs(slope) > -0.001) and abs(float(np.average(recent_temps)) - float(lastSetpoint)) < 0.4
 
     # Mise à jour de la LED
     update_stability_led(is_stable)
@@ -328,7 +329,7 @@ def save_csv():
         # Open the file in write mode
         csv_file = open(file_path, 'w', newline='')
         csv_writer = csv.writer(csv_file)
-        csv_writer.writerow(['Time', 'Temp1', 'Temp2', 'Temp3', 'Temp4', 'Erreur', 'Commande PWM', 'Setpoint', 'Stabilité atteinte (s)'])
+        csv_writer.writerow(['Time','Setpoint', 'Commande PWM', 'Temp1', 'Temp2', 'Temp3', 'Temp3 estimé', 'Erreur',  'Stabilité atteinte (s)'])
         messagebox.showinfo("Info", f"CSV file will be saved to: {file_path}")
 
 # Enregistrer les dernieres valeurs entrees par l'utilisateur
@@ -418,7 +419,7 @@ reset_button = tk.Button(frame_reg, text="Réinitialiser les réglages", font=("
 reset_button.pack(pady=20)
 
 # 📌 Bouton d’activation du régulateur en bas, bien centré
-bottom_frame = tk.Frame(page_regulateur)
+bottom_frame = tk.Frame(page_temperature)
 bottom_frame.pack(side="bottom", pady=30)  # positionnement en bas de la page
 
 # 🔹 Configuration du bouton au démarrage
