@@ -46,9 +46,9 @@ class SimulationInterface(ctk.CTk):
         self.details_simulation = {
             #"Échelon_courant_(A)": "-0.7",
             "Temps_simulation_(s)": "1600",
-            "Position_x_perturbation_(m)": ctk.StringVar(value="0.05"),  # Nouveau champ pour la position X
-            "Position_y_perturbation_(m)": ctk.StringVar(value="0.03"),  # Nouveau champ pour la position Y
-            "Puissance_perturbation_(W)": ctk.StringVar(value="0.3")   # Nouveau champ pour la puissance thermique
+            "Position_x_perturbation_(m)": "0.05",  # Nouveau champ pour la position X
+            "Position_y_perturbation_(m)": "0.03",  # Nouveau champ pour la position Y
+            "Puissance_perturbation_(W)": "0.3"  # Nouveau champ pour la puissance thermique
             
         }
         self.details_simulation.update({
@@ -135,9 +135,12 @@ class SimulationInterface(ctk.CTk):
     def update_progress(self, progress):
         """ Update the progress bar """
         self.progress_bar.set(progress/100)
-        self.label.configure(text="Temps restant : [Estime par derivé]")
 
-        if progress >= 100:
+        if (progress > 0):
+            tempRestant = int(((100/progress)-1)*self.elapsed_time)
+            self.label.configure(text=f"Temps restant : {tempRestant}s")
+
+        if progress >= 95:
             self.chrono_running = False
             self.label.configure(text="Simulation terminée !")
 
@@ -156,8 +159,8 @@ class SimulationInterface(ctk.CTk):
 
             # Transformation des valeurs de perturbation en une liste de sources
             params["Sources_chaleur"] = [{
-                "x": params.pop("Position_x_perturbation"),
-                "y": params.pop("Position_y_perturbation"),
+                "x": params.pop("Position_x_perturbation_(m)"),
+                "y": params.pop("Position_y_perturbation_(m)"),
                 "puissance": params.pop("Puissance_perturbation_(W)")
             }]
             params["Échelon_courant_1_(A)"] = params.pop("Échelon_courant_1_(A)")
@@ -205,8 +208,8 @@ class SimulationInterface(ctk.CTk):
                 **self.get_values(self.details_simulation)}
 
         params["Sources_chaleur"] = [{
-            "x": params.pop("Position_x_perturbation"),
-            "y": params.pop("Position_y_perturbation"),
+            "x": params.pop("Position_x_perturbation_(m)"),
+            "y": params.pop("Position_y_perturbation_(m)"),
             "puissance": params.pop("Puissance_perturbation_(W)")
         }]
 
@@ -234,8 +237,8 @@ class SimulationInterface(ctk.CTk):
             # Remettre les valeurs des perturbations
             if "Sources_chaleur" in params and len(params["Sources_chaleur"]) > 0:
                 source = params["Sources_chaleur"][0]
-                self.details_simulation["Position_x_perturbation(m)"].set(str(source["x"]))
-                self.details_simulation["Position_y_perturbation(m)"].set(str(source["y"]))
+                self.details_simulation["Position_x_perturbation_(m)"].set(str(source["x"]))
+                self.details_simulation["Position_y_perturbation_(m)"].set(str(source["y"]))
                 self.details_simulation["Puissance_perturbation_(W)"].set(str(source["puissance"]))
 
 
@@ -251,8 +254,8 @@ class SimulationInterface(ctk.CTk):
         self.start_time = time.time()
 
         while self.chrono_running:
-            elapsed_time = int(time.time() - self.start_time)
-            self.chrono_label.configure(text=f"Temps écoulé : {elapsed_time}s")
+            self.elapsed_time = int(time.time() - self.start_time)
+            self.chrono_label.configure(text=f"Temps écoulé : {self.elapsed_time}s")
             time.sleep(1)  # Attendre 1 seconde avant la mise à jour
 
 

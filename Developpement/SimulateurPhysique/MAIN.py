@@ -5,6 +5,10 @@ from PlaqueThermique import PlaqueThermique
 from ActuateurThermique import ActionneurThermiqueSIMPLE
 from thermistance import thermo
 from matplotlib.animation import FuncAnimation
+from matplotlib.widgets import Button
+from tkinter import Tk
+from tkinter.filedialog import asksaveasfilename
+import matplotlib.gridspec as gridspec  # NEW: Import gridspec
 
 def lancer_simulation(params, progressCallback):
     """Lance la simulation thermique avec les paramètres fournis par l'interface."""
@@ -128,10 +132,28 @@ def lancer_simulation(params, progressCallback):
     temperatures = np.array(temperatures)
 
     ### Animation
-    fig, (ax_im, ax_hist) = plt.subplots(2, 1, figsize=(8, 8))
+    gs = gridspec.GridSpec(3, 1, height_ratios=[4, 4, 1])
+    plt.style.use("dark_background")
+
+    plt.rcParams.update({
+        "figure.facecolor": "#333333",
+        "axes.facecolor": "#333333",
+    })
+
+
+    fig = plt.figure(figsize=(8, 8))
+    ax_im = fig.add_subplot(gs[0])
+    ax_hist = fig.add_subplot(gs[1])
+    ax_savebutton = fig.add_subplot(gs[2])
+    ax_savebutton.axis("off")
+
     im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
     cbar = plt.colorbar(im, ax=ax_im)
     cbar.set_label('Température en C')
+
+
+
+
 
     max_value = np.max(video)
     min_value = np.min(video)
@@ -161,14 +183,36 @@ def lancer_simulation(params, progressCallback):
 
     ani = FuncAnimation(fig, update, frames=range(0, int(num_frames / animationStep)), interval=1, blit=False)
 
+    ax_savebutton = plt.axes([0.4, 0.05, 0.3, 0.05])  # [x, y, width, height]
+    savebutton = Button(ax_savebutton, 'Enregistrer les résultats', color='dodgerblue', hovercolor='0.5')
+
+    def save_data(event):
+        root = Tk()
+        root.withdraw()
+        
+        file_path = asksaveasfilename(defaultextension=".csv", 
+                                    filetypes=[("CSV files", "*.csv"), ("All Files", "*.*")],
+                                    title="Save as")
+        
+        if file_path:
+            with open(file_path, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
+                writer.writerows(zip(time, temperatures[0], temperatures[1], temperatures[2]))
+            print(f"CSV file saved successfully at {file_path}!")
+
+    savebutton.on_clicked(save_data)
+
+
+    plt.tight_layout()
     plt.show(block=True)
 
     ### Sauvegarde des données en CSV
-    rows = zip(time, temperatures[0], temperatures[1], temperatures[2])
-    with open("output.csv", "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
-        writer.writerows(rows)
+    #rows = zip(time, temperatures[0], temperatures[1], temperatures[2])
+    #with open("output.csv", "w", newline="") as file:
+    #    writer = csv.writer(file)
+    #    writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
+    #    writer.writerows(rows)
 
-    print("CSV file saved successfully!")
+    #print("CSV file saved successfully!")
 
