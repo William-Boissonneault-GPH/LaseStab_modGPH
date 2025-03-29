@@ -16,19 +16,29 @@ from scipy.interpolate import interp1d
 
 
 
-fichierAComparer = r'C:\Users\willi\OneDrive - Université Laval\Cours\HIV2025\ModelisationGPH\LaseStab_modGPH\Developpement\SimulateurPhysique\comparaisonValidation\donneesProto\mesures_-1_5A.csv'
-regimeString="legen"
-indiceDeDepartFicher = 11
+fichierAComparer = nomfichier=r'C:\Users\willi\OneDrive - Université Laval\Cours\HIV2025\ModelisationGPH\LaseStab_modGPH\Developpement\SimulateurPhysique\Perturbation_temp_piece.csv'
+regimeString="PertubPiece"
+indiceDeDepartFicher = 0
 
-T_ambiante = 22.5
+T_ambiante = 23.3
 
-tempRegime1 = 12- indiceDeDepartFicher
-courantRegime1 = -1.5
+tempRegime1 = 29
+courantRegime1 = 0
 
-tempRegime2 = 1
+tempRegime2 = 600
 courantRegime2 = 0
 
+sourceChaleurR1 = [{
+        "x": 0.08155,
+        "y": 0.031,
+        "puissance": 0
+        }]
 
+sourceChaleurR2 = [{
+        "x": 0.08155,
+        "y": 0.031,
+        "puissance": 0.8
+        }]
 
 ###############Modele##########################
 
@@ -69,17 +79,23 @@ time = []
 
 echelonCourant = courantRegime1
 
+mat_perturbs = []
+
+
+mat_perturb = plaque.generer_mat_pertub(sourceChaleurR1)
+
 for i in range(num_frames):
 
     if i * dTime > tempRegime1:
         #Effectue la fermeture à mi-chemin
         echelonCourant = courantRegime2
+        mat_perturb = plaque.generer_mat_pertub(sourceChaleurR2)
     
     if i % (animationStep/plotRes) == 0:
         if i % animationStep == 0:
             print(f"La simulation est rendu à {round((i / num_frames)*100, 2)} %")
             #progressCallback(round((i / num_frames)*100, 2))
-            video.append(plaque.propagationDunPasDeTemps(dTime, T_ambiante, [Tec.matQTEC]))
+            video.append(plaque.propagationDunPasDeTemps(dTime, T_ambiante, [Tec.matQTEC, mat_perturb]))
             Tec.updateMatQTECCourrant(echelonCourant)
 
         for j, thermistance in enumerate(Thermistances):
@@ -88,7 +104,7 @@ for i in range(num_frames):
 
         #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
     else:
-        plaque.propagationDunPasDeTemps(dTime, T_ambiante, [Tec.matQTEC])
+        plaque.propagationDunPasDeTemps(dTime, T_ambiante, [Tec.matQTEC, mat_perturb])
     
     for j, thermistance in enumerate(Thermistances):
         temperatures[j].append(thermistance.lire_temperature())
@@ -113,9 +129,9 @@ ax_hist.set_ylim(np.min(temperatures) - 0.1, np.max(temperatures) + 0.1)
 ax_hist.set_xlabel("Time (s)")
 ax_hist.set_ylabel("Average Temperature (°C)")
 
-line_hist1, = ax_hist.plot([], [], color='red', label="Thermo 1")
-line_hist2, = ax_hist.plot([], [], color='blue', label="Thermo 2")
-line_hist3, = ax_hist.plot([], [], color='orange', label="Thermo 3")
+line_hist1, = ax_hist.plot([], [], color='red')
+line_hist2, = ax_hist.plot([], [], color='blue')
+line_hist3, = ax_hist.plot([], [], color='orange')
 ax_hist.legend()
 
 def update(frame):
@@ -174,9 +190,9 @@ plt.plot(EssaisProto["time"][0::10], EssaisProto["T3"][0::10], color=colors[2], 
 plt.plot(EssaisProto["time"][0::10], EssaisProto["T2"][0::10], color=colors[1], linestyle=line_styles[1], label='T2 mesurée')
 plt.plot(EssaisProto["time"][0::10], EssaisProto["T1"][0::10], color=colors[0], linestyle=line_styles[0], label='T1 mesurée')
 
-plt.plot(time, temperatures[0], color='k', alpha=0.5, label='T simulée')
-plt.plot(time, temperatures[1], color='k', alpha=0.5)
-plt.plot(time, temperatures[2], color='k', alpha=0.5)
+plt.plot(np.array(time), temperatures[0], color='k', alpha=0.5, label='T simulée')
+plt.plot(np.array(time), temperatures[1], color='k', alpha=0.5)
+plt.plot(np.array(time), temperatures[2], color='k', alpha=0.5)
 
 plt.xlabel("temps [s]")
 plt.ylabel("Température [C]")
@@ -201,20 +217,24 @@ def round_uncertainty(value, uncertainty):
 
 
 for i in range(3):
-    interp_func = interp1d(proto_time, EssaisProto[f"T{i+1}"][0:], kind='linear', fill_value='extrapolate')
-    values2_interp = interp_func(time) 
+    #interp_func = interp1d(proto_time, EssaisProto[f"T{i+1}"][0:], kind='linear', fill_value='extrapolate')
+    #values2_interp = interp_func(time) 
+    #percent_error = np.abs((temperatures[i]- values2_interp) / values2_interp) * 100
 
-    percent_error = np.abs((temperatures[i]- values2_interp) / values2_interp) * 100
+    interp_func = interp1d(time, temperatures[i], kind='linear', fill_value='extrapolate')
+    values2_interp = interp_func(proto_time)
+    percent_error = np.abs((EssaisProto[f"T{i+1}"][0:]- values2_interp) / values2_interp) * 100
 
     accord, incert = round_uncertainty(np.mean(percent_error), 2*np.std(percent_error))
     print(f"TermoRes {int(i+1)} : {accord} pm {incert}")
     print(f"TermoRes {int(i+1)} : {np.mean(percent_error)} pm {2*np.std(percent_error)}")
+    print(f"TermoRes {int(i+1)} : {np.max(percent_error)}")
 
     plt.plot([],[],' ',label=f"Accord T{i+1}: {accord}±{incert} %")
 
 plt.legend()
 plt.xlim((0,tempRegime1+tempRegime2))
-plt.ylim((10,25))
+plt.ylim((23,28))
 plt.tight_layout()
 plt.savefig(f'Developpement/SimulateurPhysique/comparaisonValidation/{regimeString}.pdf')
 plt.show()
