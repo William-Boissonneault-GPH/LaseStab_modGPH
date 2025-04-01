@@ -88,7 +88,7 @@ class SimulationInterface(ctk.CTk):
 
             # Créer un cadre pour l'image et le titre
             frame_image = ctk.CTkFrame(self)
-            frame_image.grid(row=21, column=0, columnspan=5, pady=20, padx=10, sticky="nsew")
+            frame_image.grid(row=15, column=0, columnspan=4, pady=20, padx=10, sticky="nsew")
 
             # Ajouter un titre au-dessus de l’image
             titre = ctk.CTkLabel(frame_image, text="Schéma des dimensions demandées", font=("Arial", 14, "bold"))

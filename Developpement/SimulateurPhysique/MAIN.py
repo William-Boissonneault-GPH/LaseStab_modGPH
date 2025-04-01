@@ -149,31 +149,30 @@ def lancer_simulation(params, progressCallback):
 
     im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
     cbar = plt.colorbar(im, ax=ax_im)
-    cbar.set_label('Température en C')
-
-
-
-
+    cbar.set_label('Température en °C')
+    ax_im.set_xlabel('Position en X (m)') 
+    ax_im.set_ylabel('Position en Y (m)')  
 
     max_value = np.max(video)
     min_value = np.min(video)
     im.set_clim(min_value, max_value)
 
-    ax_im.set_title(f"Time = 0 ms")
+    ax_im.set_title(f"Temps = 0 ms")
+    
 
     ax_hist.set_xlim(0, num_frames * dTime)
     ax_hist.set_ylim(np.min(temperatures) - 0.1, np.max(temperatures) + 0.1)
-    ax_hist.set_xlabel("Time (s)")
-    ax_hist.set_ylabel("Average Temperature (°C)")
+    ax_hist.set_xlabel("Temps (s)")
+    ax_hist.set_ylabel("Température moyenne (°C)")
 
-    line_hist1, = ax_hist.plot([], [], color='red', label="Thermo 1")
-    line_hist2, = ax_hist.plot([], [], color='blue', label="Thermo 2")
-    line_hist3, = ax_hist.plot([], [], color='orange', label="Thermo 3")
+    line_hist1, = ax_hist.plot([], [], color='red', label="T1")
+    line_hist2, = ax_hist.plot([], [], color='blue', label="T2")
+    line_hist3, = ax_hist.plot([], [], color='orange', label="T3")
     ax_hist.legend()
 
     def update(frame):
         im.set_array(video[frame])
-        ax_im.set_title(f"Time = {round(frame * animationStep * dTime, 2)} s")
+        ax_im.set_title(f"Temps = {round(frame * animationStep * dTime, 2)} (s)")
 
         line_hist1.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[0][:frame * plotRes + 1])
         line_hist2.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[1][:frame * plotRes + 1])
