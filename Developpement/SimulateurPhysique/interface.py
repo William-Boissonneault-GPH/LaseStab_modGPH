@@ -45,7 +45,7 @@ class SimulationInterface(ctk.CTk):
 
         self.details_simulation = {
             #"Échelon_courant_(A)": "-0.7",
-            "Temps_simulation_(s)": "1600",
+            "Temps_simulation_(s)": "400",
             "Position_x_perturbation_(m)": "0.05",  # Nouveau champ pour la position X
             "Position_y_perturbation_(m)": "0.03",  # Nouveau champ pour la position Y
             "Puissance_perturbation_(W)": "0.3", # Nouveau champ pour la puissance thermique
@@ -54,9 +54,9 @@ class SimulationInterface(ctk.CTk):
         }
         self.details_simulation.update({
             "Échelon_courant_1_(A)": "-0.7",
-            "Durée_échelon_1_(s)": "800",
+            "Durée_échelon_1_(s)": "200",
             "Échelon_courant_2_(A)": "0.5",
-            "Durée_échelon_2_(s)": "400"
+            "Durée_échelon_2_(s)": "200"
         })
 
         self.create_widgets()
@@ -200,6 +200,9 @@ class SimulationInterface(ctk.CTk):
             params["Durée_échelon_1_(s)"] = params.pop("Durée_échelon_1_(s)")
             params["Échelon_courant_2_(A)"] = params.pop("Échelon_courant_2_(A)")
             params["Durée_échelon_2_(s)"] = params.pop("Durée_échelon_2_(s)")
+
+            if params["Échelon_courant_1_(A)"] > 3 or params["Échelon_courant_2_(A)"] > 3 or params["Échelon_courant_1_(A)"] < -3 or params["Échelon_courant_2_(A)"] < -3:
+                messagebox.showerror("Attention!!!", "Les échelons en courant sont d'amplitude plus élevée que confirmé, le simulateur pourrait ne pas représenter la réalité.")
 
             print("Paramètres récupérés :", params)
             
