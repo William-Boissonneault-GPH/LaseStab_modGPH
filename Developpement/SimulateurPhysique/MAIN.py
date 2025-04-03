@@ -9,6 +9,7 @@ from matplotlib.widgets import Button
 from tkinter import Tk
 from tkinter.filedialog import asksaveasfilename
 import matplotlib.gridspec as gridspec  # NEW: Import gridspec
+import time 
 
 def lancer_simulation(params, progressCallback):
     """Lance la simulation thermique avec les paramètres fournis par l'interface."""
@@ -22,7 +23,6 @@ def lancer_simulation(params, progressCallback):
     k = params["Conductivité_thermique_(W/mK)"]
     rho = params["Densité_(kg/m³)"]
     T_init = params["Température_initiale_(°C)"]
-    #echelonCourant = params["Échelon_courant_(A)"]
     totalTime= params["Temps_simulation_(s)"]
     sources_chaleur = params["Sources_chaleur"]
 
@@ -43,7 +43,7 @@ def lancer_simulation(params, progressCallback):
     pos_y_TEC = params["Position_y_TEC_(m)"]
     dim_x_TEC = params["Dimension_x_TEC_(m)"]
     dim_y_TEC = params["Dimension_y_TEC_(m)"]
-    coeff_a= params["Coefficient_couplage_a"]  # Ajout des coefficients
+    coeff_a= params["Coefficient_couplage_a"]  
     coeff_b= params["Coefficient_couplage_b"]
 
     # Création de la plaque thermique avec les paramètres de l'interface
@@ -78,56 +78,53 @@ def lancer_simulation(params, progressCallback):
     temperatures = [[], [], []]
     plottingTemp = [[],[],[]]
     plottingtemp = []
-    time = []
+    time1 = []
 
-    # Génération de la matrice de puissance thermique
+
+
+    temps_attente = params["Temps_avant_d'appliquer_la_perturbation_(s)"]
+    perturbation_appliquee = False  # Assure qu'on applique la perturbation une seule fois
+    
     mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
 
     for i in range(num_frames):
-        # if i == num_frames / 2:
-        #     #Effectue la fermeture à mi-chemin
-        #     echelonCourant = 0
-
         current_time = i * dTime
 
         # Gestion de l'échelon de courant
         if current_time <= dureeEchelon1:
             TecA.updateMatQTECCourrant(echelonCourant1)
-
         elif dureeEchelon1 < current_time <= (dureeEchelon1 + dureeEchelon2):
             TecA.updateMatQTECCourrant(echelonCourant2)
-
         else:
             TecA.updateMatQTECCourrant(0)
-        
-        if i % (animationStep/plotRes) == 0:
+
+        # Appliquer la perturbation seulement après le temps spécifié
+        if current_time >= temps_attente and not perturbation_appliquee:
+            mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)  # Générer la perturbation
+            perturbation_appliquee = True  # Empêcher de l'appliquer plusieurs fois
+
+        # Si on est avant le temps d'attente, pas de perturbation appliquée
+        if current_time < temps_attente:
+            sources_chaleur_actuelles = np.zeros_like(mat_perturb)  # Matrice nulle si la perturbation ne doit pas encore être appliquée
+
+        else:
+            sources_chaleur_actuelles = mat_perturb
+
+        if i % (animationStep / plotRes) == 0:
             if i % animationStep == 0:
-                print(f"La simulation est rendu à {round((i / num_frames)*100, 2)} %")
-                progressCallback(round((i / num_frames)*100, 2))
-                video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb]))
+                print(f"La simulation est rendue à {round((i / num_frames) * 100, 2)} %")
+                progressCallback(round((i / num_frames) * 100, 2))
+                video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, sources_chaleur_actuelles]))
 
-                #Pour actuateur complex
-                #TecA.updateMatQTEC(echelonCourant, PlaqueA.matTemperature, T_init)
-
-                #Pour actuateur SIMPLE
-                TecA.updateMatQTECCourrant(echelonCourant1)
-
-                #mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)
-            
             for j, thermistance in enumerate(Thermistances):
                 plottingTemp[j].append(thermistance.lire_temperature())
             plottingtemp.append(i * dTime)
         else:
-            PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, mat_perturb])
-        #if i % animationStep == 0:
-            #video.append(PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation]))
-            #TecA.updateMatPerturbation(echelonCourant, PlaqueA.matTemperature, T_init)
-        #else:
-            #PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matPerturbation])
-        
+            PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, sources_chaleur_actuelles])
+
         for j, thermistance in enumerate(Thermistances):
             temperatures[j].append(thermistance.lire_temperature())
-        time.append(i * dTime)
+        time1.append(i * dTime)
 
     temperatures = np.array(temperatures)
 
@@ -197,7 +194,7 @@ def lancer_simulation(params, progressCallback):
             with open(file_path, "w", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
-                writer.writerows(zip(time, temperatures[0], temperatures[1], temperatures[2]))
+                writer.writerows(zip(time1, temperatures[0], temperatures[1], temperatures[2]))
             print(f"CSV file saved successfully at {file_path}!")
 
     savebutton.on_clicked(save_data)

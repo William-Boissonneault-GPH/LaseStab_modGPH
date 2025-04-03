@@ -7,6 +7,7 @@ from PIL import Image
 from threading import Thread
 from tkinter import filedialog
 import time
+from tkinter import Toplevel
 
 
 ctk.set_appearance_mode("dark")  
@@ -17,7 +18,6 @@ class SimulationInterface(ctk.CTk):
         super().__init__()
         self.title("Simulation Thermique")
         self.geometry("1100x600")
-
         # Définition des paramètres par section
         self.thermistances = {
             "Position_x_T1_(m)": "0.10475", "Position_y_T1_(m)": "0.031",
@@ -48,7 +48,8 @@ class SimulationInterface(ctk.CTk):
             "Temps_simulation_(s)": "1600",
             "Position_x_perturbation_(m)": "0.05",  # Nouveau champ pour la position X
             "Position_y_perturbation_(m)": "0.03",  # Nouveau champ pour la position Y
-            "Puissance_perturbation_(W)": "0.3"  # Nouveau champ pour la puissance thermique
+            "Puissance_perturbation_(W)": "0.3", # Nouveau champ pour la puissance thermique
+            "Temps_avant_d'appliquer_la_perturbation_(s)": "300" 
             
         }
         self.details_simulation.update({
@@ -66,7 +67,7 @@ class SimulationInterface(ctk.CTk):
         # Ajouter les boutons directement dans ce cadre
         ctk.CTkButton(frame_status, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
         ctk.CTkButton(frame_status, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
-
+        ctk.CTkButton(frame_status, text="Enregistrer Paramètres", command=self.enregistrer_parametres_manuellement).pack(pady=10)
         # Texte d'état
         self.label = ctk.CTkLabel(frame_status, text="En attente de simulation", font=("Arial", 14))
         self.label.pack(pady=10, padx=20)
@@ -79,6 +80,15 @@ class SimulationInterface(ctk.CTk):
         # Chronomètre
         self.chrono_label = ctk.CTkLabel(frame_status, text="Temps écoulé : 0s", font=("Arial", 14))
         self.chrono_label.pack(pady=10, padx=20)
+
+
+        # Ajouter le bouton avec l'icône et le texte cliquable
+        manual_button = ctk.CTkButton(
+            frame_status, 
+            text="Manuel d'utilisation", 
+            command=self.show_manual, 
+        )
+        manual_button.pack(pady=10)
 
     def ajouter_image(self):
         """Ajoute une image explicative sous les paramètres avec un titre"""
@@ -101,6 +111,29 @@ class SimulationInterface(ctk.CTk):
 
         except Exception as e:
             print(f"Erreur lors du chargement de l'image : {e}")
+
+    def enregistrer_parametres_manuellement(self):
+        """Demande à l'utilisateur où il souhaite enregistrer les paramètres"""
+        fichier = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Fichiers JSON", "*.json"), ("Tous les fichiers", "*.*")])
+        if fichier:
+            params = {**self.get_values(self.thermistances),
+                      **self.get_values(self.tec),
+                      **self.get_values(self.plaque),
+                      **self.get_values(self.proprietes_materiau),
+                      **self.get_values(self.details_simulation)}
+            
+            params["Sources_chaleur"] = [{
+                "x": params.pop("Position_x_perturbation_(m)"),
+                "y": params.pop("Position_y_perturbation_(m)"),
+                "puissance": params.pop("Puissance_perturbation_(W)")
+            }]
+            
+            with open(fichier, "w") as f:
+                json.dump(params, f, indent=4)
+            
+            messagebox.showinfo("Succès", f"Les paramètres ont été sauvegardés dans {fichier}")
+        else:
+            messagebox.showwarning("Aucun fichier", "Aucun fichier n'a été sélectionné.")
 
     def create_widgets(self):
         """Crée et place les widgets dans l'interface en sections"""
@@ -155,8 +188,8 @@ class SimulationInterface(ctk.CTk):
                     **self.get_values(self.proprietes_materiau),
                     **self.get_values(self.details_simulation)}
             
-            self.sauvegarder_parametres()
-
+            #self.sauvegarder_parametres()
+            params["Temps_avant_d'appliquer_la_perturbation_(s)"] = params.pop("Temps_avant_d'appliquer_la_perturbation_(s)")
             # Transformation des valeurs de perturbation en une liste de sources
             params["Sources_chaleur"] = [{
                 "x": params.pop("Position_x_perturbation_(m)"),
@@ -192,31 +225,34 @@ class SimulationInterface(ctk.CTk):
         except Exception as e:
             self.chrono_running = False
             self.label.configure(text="Erreur lors de la simulation.")
-            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation : {e}")
+            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation. Vérifiez les pramètres entrés.{e}")
 
 
     def get_values(self, param_dict):
         """Convertit les valeurs des dictionnaires en float."""
         return {key: float(var.get()) for key, var in param_dict.items()}
 
-    def sauvegarder_parametres(self):
-        """Sauvegarde les paramètres actuels dans un fichier JSON."""
-        params = {**self.get_values(self.thermistances),
-                **self.get_values(self.tec),
-                **self.get_values(self.plaque),
-                **self.get_values(self.proprietes_materiau),
-                **self.get_values(self.details_simulation)}
+#cette partie permet de sauvegarder directement dans le fichier derniere_simulation que 
+#nous avons dans le github
 
-        params["Sources_chaleur"] = [{
-            "x": params.pop("Position_x_perturbation_(m)"),
-            "y": params.pop("Position_y_perturbation_(m)"),
-            "puissance": params.pop("Puissance_perturbation_(W)")
-        }]
+    # def sauvegarder_parametres(self):
+    #     """Sauvegarde les paramètres actuels dans un fichier JSON."""
+    #     params = {**self.get_values(self.thermistances),
+    #             **self.get_values(self.tec),
+    #             **self.get_values(self.plaque),
+    #             **self.get_values(self.proprietes_materiau),
+    #             **self.get_values(self.details_simulation)}
 
-        with open("derniere_simulation.json", "w") as f:
-            json.dump(params, f, indent=4)
+    #     params["Sources_chaleur"] = [{
+    #         "x": params.pop("Position_x_perturbation_(m)"),
+    #         "y": params.pop("Position_y_perturbation_(m)"),
+    #         "puissance": params.pop("Puissance_perturbation_(W)")
+    #     }]
+
+    #     with open("derniere_simulation.json", "w") as f:
+    #         json.dump(params, f, indent=4)
         
-        print("Paramètres sauvegardés dans 'derniere_simulation.json'")
+    #     print("Paramètres sauvegardés dans 'derniere_simulation.json'")
 
 
     def charger_parametres(self):
@@ -258,6 +294,42 @@ class SimulationInterface(ctk.CTk):
             self.chrono_label.configure(text=f"Temps écoulé : {self.elapsed_time}s")
             time.sleep(1)  # Attendre 1 seconde avant la mise à jour
 
+
+    def show_manual(self):
+        """Ouvre une nouvelle fenêtre contenant le manuel d'utilisation."""
+        manual_window = Toplevel(self)
+        manual_window.title("Manuel d'utilisation")
+        manual_window.geometry("500x400")
+
+        # Texte du manuel
+        manual_text = """
+        Bienvenue dans le manuel d'utilisation !
+
+        Cette application vous permet de simuler la distribution de la température sur une plaque thermique.
+        Vous pouvez configurer différents paramètres tels que la position des thermistances,
+        les caractéristiques du matériau, et bien plus encore.
+
+        Étapes pour utiliser l'application :
+        1. Saisissez les valeurs des paramètres de simulation.
+        2. Cliquez sur "Lancer Simulation" pour démarrer.
+        3. Surveillez l'évolution de la température pendant la simulation.
+
+        """
+
+        frame = ctk.CTkFrame(manual_window, bg_color="black")  # Fond noir
+        frame.pack(fill="both", expand=True)
+
+        # Créer un label avec texte blanc
+        manual_label = ctk.CTkLabel(frame, 
+                                    text=manual_text, 
+                                    anchor="w", 
+                                    font=("Arial", 14), 
+                                    text_color="white")  # Texte blanc
+        manual_label.pack(padx=20, pady=20)
+
+        # Ajouter un bouton de fermeture dans le manuel
+        close_button = ctk.CTkButton(manual_window, text="Fermer", command=manual_window.destroy)
+        close_button.pack(pady=10)
 
 if __name__ == "__main__":
     app = SimulationInterface()
