@@ -66,7 +66,10 @@ def lancer_simulation(params, progressCallback):
     TecA.updateMatQTECCourrant(echelonCourant1)
 
     totalTime = totalTime
-    dTime = 1/363
+    # 0.25 doit rester en bas de 0.5 !!!! 
+    dTime = ((rho * cp * 0.001 * 0.001) * 0.2) / k
+    print(f"dt = {dTime}")
+
 
     num_frames = int(totalTime * (1/dTime))
     ##Animation steps détermine la mémoire utilisé dans l'ordi!
