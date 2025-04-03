@@ -17,7 +17,7 @@ class SimulationInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Simulation Thermique")
-        self.geometry("1100x600")
+        self.geometry("1500x950")
         # Définition des paramètres par section
         self.thermistances = {
             "Position_x_T1_(m)": "0.10475", "Position_y_T1_(m)": "0.031",
@@ -299,35 +299,111 @@ class SimulationInterface(ctk.CTk):
         """Ouvre une nouvelle fenêtre contenant le manuel d'utilisation."""
         manual_window = Toplevel(self)
         manual_window.title("Manuel d'utilisation")
-        manual_window.geometry("500x400")
+        manual_window.geometry("1400x900")  # Augmenter la largeur pour deux colonnes
 
-        # Texte du manuel
-        manual_text = """
-        Bienvenue dans le manuel d'utilisation !
+        frame = ctk.CTkFrame(manual_window)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Texte pour la première colonne (points 1 et 2)
+        manual_text_col1 = """
+        ==============================
+        Manuel d'utilisateur : Interface de Simulation Thermique
+        ==============================
+
+        Bienvenue dans le manuel d'utilisateur !
 
         Cette application vous permet de simuler la distribution de la température sur une plaque thermique.
         Vous pouvez configurer différents paramètres tels que la position des thermistances,
         les caractéristiques du matériau, et bien plus encore.
 
         Étapes pour utiliser l'application :
-        1. Saisissez les valeurs des paramètres de simulation.
-        2. Cliquez sur "Lancer Simulation" pour démarrer.
-        3. Surveillez l'évolution de la température pendant la simulation.
+            1. Saisissez les valeurs des paramètres de simulation.
+            2. Cliquez sur "Lancer Simulation" pour démarrer.
+            3. Surveillez l'évolution de la température pendant la simulation.
 
+        ---------------------------------------------------------------------
+        1. Précision sur les paramètres
+        ---------------------------------------------------------------------
+
+        -Thermistances:
+            Les thermistances permettent de mesurer la température en différents points de la plaque. Les positions 
+            de celles-ci sont à spécifier en se basant sur l'image présente dans l'interface.
+
+        -TEC:
+            La section TEC est pour l'actuateur thermoélectrique. Les positions sont aussi déterminées en se basant sur l'image incluse
+            dans l'interface. Les coefficients a et b mentionnés dans cette section sont reliés au couplage entre l'actuateur et la plaque.
+            Pour cette simulation, il a été assumé que l'actuateur thermoélectrique transfère une puissance thermique stable à la plaque 
+            qui dépend uniquement du courant qui lui est procuré. Pour le modéliser, un polynôme de degré deux, qui représente la 
+            relation entre la puissance thermique absorbée par la plaque et le courant, est utilisé. Les coefficients ajustables 
+            sont donc les coefficients du polynôme.
+
+        -Détails de la simulation:
+            Cette section permet de contrôler la simulation comme l'utilisateur le désire.
+
+            Temps de simulation : représente la durée totale désirée pour la simulation.
+            
+            Échelons de courant et durées : il est possible de spécifier un premier échelon de courant à appliquer sur la plaque ainsi que 
+            la durée de cet échelon. Cela laisse la liberté à l'utilisateur de pouvoir tester deux régimes différents dans une même
+            simulation. 
+                Exemple : Échelon 1, durée 100s et échelon 2, durée 200s -> un échelon de courant de la valeur de échelon1 sera envoyé 
+                à la plaque pendant 100s et ensuite, un échelon de courant de la valeur de échelon2 sera envoyé à la plaque à partir de 
+                100s pendant 200s.
+                
+            Perturbation: il est possible de spécifier une perturbation supplémentaire en puissance à appliquer à un point précis sur la 
+            plaque. Le délai avant d'appliquer celle-ci peut aussi être spécifié. Par exemple, un délai de 100s signifie que la simulation 
+            commencera sans perturbation supplémentaire, mais qu'à partir de 100s, la perturbation sera appliquée à l'endroit spécifié 
+            jusqu'à la fin de la simulation.
         """
 
-        frame = ctk.CTkFrame(manual_window, bg_color="black")  # Fond noir
-        frame.pack(fill="both", expand=True)
+        # Texte pour la deuxième colonne (points 3 et 4)
+        manual_text_col2 = """
+        ---------------------------------------------------------------------
+        2. Restrictions et contraintes
+        ---------------------------------------------------------------------
 
-        # Créer un label avec texte blanc
-        manual_label = ctk.CTkLabel(frame, 
-                                    text=manual_text, 
-                                    anchor="w", 
-                                    font=("Arial", 14), 
-                                    text_color="white")  # Texte blanc
-        manual_label.pack(padx=20, pady=20)
+        Pour assurer la stabilité de la simulation et la cohérence physique des résultats, certaines contraintes doivent être respectées :
 
-        # Ajouter un bouton de fermeture dans le manuel
+        - Échelon de courant maximal : La simulation supporte un échelon de courant allant jusqu'à **3 A**.
+        - Perturbation de puissance : Une perturbation de **0.5 W** est prise en compte sans comportement anormal.
+        - Température initiale : Doit être définie dans un intervalle réaliste pour éviter des instabilités numériques.
+        - Durées et dimensions : Toutes les durées et dimensions spécifiées dans la simulation ne peuvent être des valeurs négatives.
+        - Positions : Toutes les positions spécifiées doivent être dans la plaque (Thermistances, TEC, Perturbation).
+
+        ---------------------------------------------------------------------
+        3. Gestion des erreurs
+        ---------------------------------------------------------------------
+
+        L'interface génère des erreurs dans les cas suivants :
+
+            - Une valeur non numérique est saisie.
+            - Une valeur négative est saisie dans un champ où ce n'est pas permis.
+            - Une position ou une dimension dépasse les limites de la plaque.
+            - Une durée est négative.
+            - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré.
+
+        En cas d'erreur, un message s'affichera pour vous inviter à corriger les valeurs incorrectes.
+
+        ---------------------------------------------------------------------
+        4. Fonctionnalités supplémentaires
+        ---------------------------------------------------------------------
+
+        - Charger Paramètres : Permet de charger un fichier JSON enregistré contenant une configuration précédente.
+        - Lancer Simulation : Exécute la simulation avec les paramètres saisis dans l'interface.
+        - Enregistrer Paramètres : Permet de sauvegarder, à l'endroit désiré, les paramètres actuels dans un fichier JSON.
+        """
+
+        # Création des deux colonnes sous forme de textboxes
+        col1 = ctk.CTkTextbox(frame, wrap="word", font=("Arial", 12), width=725, height=800, text_color="white", bg_color="black")
+        col1.insert("1.0", manual_text_col1)
+        col1.configure(state="disabled")  # Empêcher l'édition
+        col1.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+
+        col2 = ctk.CTkTextbox(frame, wrap="word", font=("Arial", 12), width=725, height=800, text_color="white", bg_color="black")
+        col2.insert("1.0", manual_text_col2)
+        col2.configure(state="disabled")  # Empêcher l'édition
+        col2.grid(row=0, column=1, padx=5, pady=5, sticky="nw")
+
+        # Ajouter un bouton de fermeture
         close_button = ctk.CTkButton(manual_window, text="Fermer", command=manual_window.destroy)
         close_button.pack(pady=10)
 
