@@ -377,7 +377,6 @@ class SimulationInterface(ctk.CTk):
             - Une valeur non numérique est saisie.
             - Une valeur négative est saisie dans un champ où ce n'est pas permis.
             - Une position ou une dimension dépasse les limites de la plaque.
-            - Une durée est négative.
             - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré, la simulation
             va, cependant, tout de même s'effectuer.
 
@@ -390,7 +389,7 @@ class SimulationInterface(ctk.CTk):
         - Charger Paramètres : Permet de charger un fichier JSON enregistré contenant une configuration précédente.
         - Lancer Simulation : Exécute la simulation avec les paramètres saisis dans l'interface.
         - Enregistrer Paramètres : Permet de sauvegarder, à l'endroit désiré, les paramètres actuels dans un fichier JSON.
-        - Enregistrer les résultats : Permet de sauvegarder, à l'endroit désiré, les résultats des courbes des trois termistances
+        - Enregistrer les résultats : Permet de sauvegarder, à l'endroit désiré, les résultats des courbes des trois thermistances
         dans un fichier CSV.
         """
 
