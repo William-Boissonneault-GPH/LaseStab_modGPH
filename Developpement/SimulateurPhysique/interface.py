@@ -363,7 +363,9 @@ class SimulationInterface(ctk.CTk):
         Pour assurer la stabilité de la simulation et la cohérence physique des résultats, certaines contraintes doivent être respectées :
 
         - Échelon de courant maximal: la simulation supporte un échelon de courant allant jusqu'à ± 3 A.
-        - Température initiale: doit être définie dans un intervalle réaliste pour éviter des instabilités numériques.
+        - Température initiale: doit être définie dans un intervalle réaliste pour éviter les instabilités numériques. Le présent simulateur 
+        est optimal sur une plage de températures entre 20°C et 30°C. Une température initiale en dehors de cette plage peut tout de 
+        même fonctionner, mais peut être instable et ne pas représenter la réalité.
         - Durées et dimensions: toutes les durées et dimensions spécifiées dans la simulation ne peuvent être des valeurs négatives.
         - Positions: toutes les positions spécifiées doivent être dans la plaque (Thermistances, TEC, Perturbation).
 
