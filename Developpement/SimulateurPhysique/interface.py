@@ -85,7 +85,7 @@ class SimulationInterface(ctk.CTk):
         # Ajouter le bouton avec l'icône et le texte cliquable
         manual_button = ctk.CTkButton(
             frame_status, 
-            text="Manuel d'utilisation", 
+            text="Manuel d'utilisateur", 
             command=self.show_manual, 
         )
         manual_button.pack(pady=10)
