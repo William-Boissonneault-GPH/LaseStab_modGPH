@@ -315,7 +315,7 @@ class SimulationInterface(ctk.CTk):
         Vous pouvez configurer différents paramètres tels que la position des thermistances,
         les caractéristiques du matériau, et bien plus encore.
 
-        Étapes pour utiliser l'application :
+        Étapes pour utiliser l'application:
             1. Saisissez les valeurs des paramètres de simulation.
             2. Cliquez sur "Lancer Simulation" pour démarrer.
             3. Surveillez l'évolution de la température pendant la simulation.
@@ -339,12 +339,12 @@ class SimulationInterface(ctk.CTk):
         -Détails de la simulation:
             Cette section permet de contrôler la simulation comme l'utilisateur le désire.
 
-            Temps de simulation : représente la durée totale désirée pour la simulation.
+            Temps de simulation: représente la durée totale désirée pour la simulation.
             
-            Échelons de courant et durées : il est possible de spécifier un premier échelon de courant à appliquer sur la plaque ainsi que 
+            Échelons de courant et durées: il est possible de spécifier un premier échelon de courant à appliquer sur la plaque ainsi que 
             la durée de cet échelon. Cela laisse la liberté à l'utilisateur de pouvoir tester deux régimes différents dans une même
             simulation. 
-                Exemple : Échelon 1, durée 100s et échelon 2, durée 200s -> un échelon de courant de la valeur de échelon1 sera envoyé 
+                Exemple: Échelon 1, durée 100s et échelon 2, durée 200s -> un échelon de courant de la valeur de échelon1 sera envoyé 
                 à la plaque pendant 100s et ensuite, un échelon de courant de la valeur de échelon2 sera envoyé à la plaque à partir de 
                 100s pendant 200s.
 
@@ -362,11 +362,10 @@ class SimulationInterface(ctk.CTk):
 
         Pour assurer la stabilité de la simulation et la cohérence physique des résultats, certaines contraintes doivent être respectées :
 
-        - Échelon de courant maximal : La simulation supporte un échelon de courant allant jusqu'à **3 A**.
-        - Perturbation de puissance : Une perturbation de **0.5 W** est prise en compte sans comportement anormal.
-        - Température initiale : Doit être définie dans un intervalle réaliste pour éviter des instabilités numériques.
-        - Durées et dimensions : Toutes les durées et dimensions spécifiées dans la simulation ne peuvent être des valeurs négatives.
-        - Positions : Toutes les positions spécifiées doivent être dans la plaque (Thermistances, TEC, Perturbation).
+        - Échelon de courant maximal: la simulation supporte un échelon de courant allant jusqu'à ± 3 A.
+        - Température initiale: doit être définie dans un intervalle réaliste pour éviter des instabilités numériques.
+        - Durées et dimensions: toutes les durées et dimensions spécifiées dans la simulation ne peuvent être des valeurs négatives.
+        - Positions: toutes les positions spécifiées doivent être dans la plaque (Thermistances, TEC, Perturbation).
 
         ---------------------------------------------------------------------
         3. Gestion des erreurs
@@ -374,10 +373,10 @@ class SimulationInterface(ctk.CTk):
 
         L'interface génère des erreurs dans les cas suivants :
 
-            - Une valeur non numérique est saisie.
+            - Une valeur non numérique est saisie. Note: les chiffres à virgules doivent être écrits avec des points.
             - Une valeur négative est saisie dans un champ où ce n'est pas permis.
             - Une position ou une dimension dépasse les limites de la plaque.
-            - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré, la simulation
+            - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré. La simulation
             va, cependant, tout de même s'effectuer.
 
         En cas d'erreur, un message s'affichera pour vous inviter à corriger les valeurs incorrectes.
@@ -386,10 +385,10 @@ class SimulationInterface(ctk.CTk):
         4. Fonctionnalités supplémentaires
         ---------------------------------------------------------------------
 
-        - Charger Paramètres : Permet de charger un fichier JSON enregistré contenant une configuration précédente.
-        - Lancer Simulation : Exécute la simulation avec les paramètres saisis dans l'interface.
-        - Enregistrer Paramètres : Permet de sauvegarder, à l'endroit désiré, les paramètres actuels dans un fichier JSON.
-        - Enregistrer les résultats : Permet de sauvegarder, à l'endroit désiré, les résultats des courbes des trois thermistances
+        - Charger Paramètres: permet de charger un fichier JSON enregistré contenant une configuration précédente.
+        - Lancer Simulation: exécute la simulation avec les paramètres saisis dans l'interface.
+        - Enregistrer Paramètres: permet de sauvegarder, à l'endroit désiré, les paramètres actuels dans un fichier JSON.
+        - Enregistrer les résultats: permet de sauvegarder, à l'endroit désiré, les résultats des courbes des trois thermistances
         dans un fichier CSV.
         """
 
