@@ -160,10 +160,6 @@ class SimulationInterface(ctk.CTk):
             ctk.CTkLabel(frame, text=key.replace("_", " ")).pack(anchor="w")
             ctk.CTkEntry(frame, textvariable=var).pack(pady=2)
 
-        # # Ajouter un bouton pour lancer la simulation uniquement dans la dernière section
-        # if add_button:
-        #     ctk.CTkButton(frame, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
-        #     ctk.CTkButton(frame, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
 
     def update_progress(self, progress):
         """ Update the progress bar """
@@ -351,7 +347,7 @@ class SimulationInterface(ctk.CTk):
                 Exemple : Échelon 1, durée 100s et échelon 2, durée 200s -> un échelon de courant de la valeur de échelon1 sera envoyé 
                 à la plaque pendant 100s et ensuite, un échelon de courant de la valeur de échelon2 sera envoyé à la plaque à partir de 
                 100s pendant 200s.
-                
+
             Perturbation: il est possible de spécifier une perturbation supplémentaire en puissance à appliquer à un point précis sur la 
             plaque. Le délai avant d'appliquer celle-ci peut aussi être spécifié. Par exemple, un délai de 100s signifie que la simulation 
             commencera sans perturbation supplémentaire, mais qu'à partir de 100s, la perturbation sera appliquée à l'endroit spécifié 
@@ -382,7 +378,8 @@ class SimulationInterface(ctk.CTk):
             - Une valeur négative est saisie dans un champ où ce n'est pas permis.
             - Une position ou une dimension dépasse les limites de la plaque.
             - Une durée est négative.
-            - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré.
+            - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré, la simulation
+            va, cependant, tout de même s'effectuer.
 
         En cas d'erreur, un message s'affichera pour vous inviter à corriger les valeurs incorrectes.
 
@@ -393,6 +390,8 @@ class SimulationInterface(ctk.CTk):
         - Charger Paramètres : Permet de charger un fichier JSON enregistré contenant une configuration précédente.
         - Lancer Simulation : Exécute la simulation avec les paramètres saisis dans l'interface.
         - Enregistrer Paramètres : Permet de sauvegarder, à l'endroit désiré, les paramètres actuels dans un fichier JSON.
+        - Enregistrer les résultats : Permet de sauvegarder, à l'endroit désiré, les résultats des courbes des trois termistances
+        dans un fichier CSV.
         """
 
         # Création des deux colonnes sous forme de textboxes
