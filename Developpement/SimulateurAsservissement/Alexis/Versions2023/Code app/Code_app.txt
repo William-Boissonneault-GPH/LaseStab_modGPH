@@ -1,0 +1,806 @@
+classdef Simulink_asserv_Disc_6Avril_V2023a_app_SLSimApp < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        GUI                           matlab.ui.Figure
+        FileMenu                      matlab.ui.container.Menu
+        SaveMenu                      matlab.ui.container.Menu
+        SaveSession                   matlab.ui.container.Menu
+        SaveParametersAndInputs       matlab.ui.container.Menu
+        DonnesCSVMenu                 matlab.ui.container.Menu
+        ParamtresJSONMenu             matlab.ui.container.Menu
+        LoadMenu                      matlab.ui.container.Menu
+        LoadSession                   matlab.ui.container.Menu
+        LoadParametersAndInputs       matlab.ui.container.Menu
+        ParamtresJSONMenu_2           matlab.ui.container.Menu
+        SettingsMenu                  matlab.ui.container.Menu
+        ConfigureForDeploymentMenu    matlab.ui.container.Menu
+        ResetParametersAndInputs      matlab.ui.container.Menu
+        MainGL                        matlab.ui.container.GridLayout
+        SimControlsGL                 matlab.ui.container.GridLayout
+        SimTimeLabel                  matlab.ui.control.Label
+        StatusLabel                   matlab.ui.control.Label
+        StopTimeGL                    matlab.ui.container.GridLayout
+        StopTimeEditField             matlab.ui.control.EditField
+        StopTimeEditFieldLabel        matlab.ui.control.Label
+        StopButton                    matlab.ui.control.Button
+        RunPauseResumeButton          matlab.ui.control.Button
+        ModelHTMLAndPrmsGLShuttersGL  matlab.ui.container.GridLayout
+        ModelAndVariablesView         matlab.ui.container.TabGroup
+        ModelTab                      matlab.ui.container.Tab
+        ModelGL                       matlab.ui.container.GridLayout
+        ModelHTML                     matlab.ui.control.HTML
+        PrmsGL                        matlab.ui.container.GridLayout
+        ModelHTMLAndPrmsGLShutterControlsGL  matlab.ui.container.GridLayout
+        ScrollTopRightUIC             matlab.ui.control.Button
+        ScrollTopLeftUIC              matlab.ui.control.Button
+        ControlsGL                    matlab.ui.container.GridLayout
+        ScrollDownUIC                 matlab.ui.control.Button
+        ScrollUpUIC                   matlab.ui.control.Button
+        ResultsGL                     matlab.ui.container.GridLayout
+        SigsGLAndAxesGLShuttersGL     matlab.ui.container.GridLayout
+        AxesGL                        matlab.ui.container.GridLayout
+        SigsGL                        matlab.ui.container.GridLayout
+        SigsGLAndAxesGLShutterControlsGL  matlab.ui.container.GridLayout
+        ScrollBottomRightUIC          matlab.ui.control.Button
+        ScrollBottomLeftUIC           matlab.ui.control.Button
+        PlotControlsGL                matlab.ui.container.GridLayout
+        PlotLayoutOuterGL             matlab.ui.container.GridLayout
+        PlotLayoutGL                  matlab.ui.container.GridLayout
+        NumAxesCols                   matlab.ui.control.Spinner
+        NumAxesRows                   matlab.ui.control.Spinner
+        PlotLayoutLabel               matlab.ui.control.Label
+        PlotRefreshRateHzSliderLabel  matlab.ui.control.Label
+        PlotRefreshRateHzSlider       matlab.ui.control.Slider
+    end
+
+    properties (Access = public)
+        debugTrace = false % set to true to enable printing debug messages
+        modelData
+        lastLoadedParameters = struct(); % ✅ Add this line
+    end
+
+    properties (Access = ?AppHelper)
+        initialized = false
+        selectedAxes matlab.ui.control.UIAxes
+        refreshTimer timer
+        flashMsgTimer timer
+        simStatus = slsim.SimulationStatus.Inactive
+        Helper
+    end
+
+    methods (Access = ?AppHelper)
+        function fcn = createCallbackFcnProxy(app, callback, requiresEventData)
+            fcn = app.createCallbackFcn(callback, requiresEventData);
+        end
+    end
+
+    
+    
+    methods (Access = private)
+        
+        function saveOutput(app)
+            try
+                % Get simulation output from app.modelData
+                if ~isfield(app.modelData, 'simOut') || isempty(app.modelData.simOut)
+                    uialert(app.GUI, 'No simulation output available to save.', 'No Data');
+                    return;
+                end
+                
+                out = app.modelData.simOut;
+                
+                % Check logsout
+                if ~isprop(out, 'logsout') || isempty(out.logsout)
+                    uialert(app.GUI, 'No logged signals found in simulation output.', 'No Data');
+                    return;
+                end
+                
+                logsout = out.logsout;
+        
+                % Ensure logsout is not empty
+                if logsout.numElements == 0
+                    uialert(app.GUI, 'No signals found in logsout.', 'No Data');
+                    return;
+                end
+        
+                % Get reference time vector from first signal
+                commonTime = logsout.get(1).Values.Time;
+        
+                % Initialize table with time column
+                signalTable = table(commonTime, 'VariableNames', {'Time'});
+        
+                % Loop through all signals dynamically
+                for i = 1:logsout.numElements
+                    signal = logsout.get(i);
+                    
+                    % Clean the signal name for use as table variable name
+                    cleanSignalName = matlab.lang.makeValidName(signal.Name);
+                    
+                    % Resample to common time base
+                    resampledSignal = resample(signal.Values, commonTime);
+        
+                    % Add to table
+                    signalTable.(cleanSignalName) = resampledSignal.Data;
+                end
+        
+                % Ask user where to save the file
+                [file, path] = uiputfile('signals.csv', 'Save Signal Log');
+                if isequal(file, 0)
+                    disp('User canceled file save.');
+                    return;
+                end
+        
+                % Save to CSV
+                writetable(signalTable, fullfile(path, file));
+        
+                % Success message
+                uialert(app.GUI, 'Signal data saved successfully!', 'Export Complete');
+        
+            catch ME
+                % If anything goes wrong, show the error message
+                uialert(app.GUI, sprintf('Failed to export signal data:\n%s', ME.message), 'Export Error');
+            end
+    end
+
+    function saveParametersToJSON(app)
+        
+            % === File selection ===
+            [fileName, filePath] = uiputfile('*.json', 'Save Parameters As');
+            if isequal(fileName, 0)
+                disp('❌ User canceled saving.');
+                return;
+            end
+            fullFileName = fullfile(filePath, fileName);
+        
+            % === Prepare data ===
+            data = struct();
+        
+            % === Export UI components (single numeric fields) ===
+            allComponents = findall(app.PrmsGL);
+            for i = 1:numel(allComponents)
+                comp = allComponents(i);
+                if isa(comp, 'matlab.ui.control.NumericEditField') && ~isempty(comp.Tag)
+                    try
+                        value = comp.Value;
+                        data.(comp.Tag) = value;
+                        fprintf('✅ Saved UI field: %s = %s\n', comp.Tag, mat2str(value));
+                    catch err
+                        warning('⚠️ Could not export UI field "%s": %s', comp.Tag, err.message);
+                    end
+                end
+            end
+        
+            % === Export tunable variables (automated) ===
+            if isfield(app.modelData, 'tunableVariables') && ~isempty(app.modelData.tunableVariables)
+                tunableVars = app.modelData.tunableVariables;
+                for i = 1:numel(tunableVars)
+                    paramName = tunableVars(i).QualifiedName;
+                    value = tunableVars(i).Value;
+        
+                    % Extract value if Simulink.Parameter
+                    if isa(value, 'Simulink.Parameter')
+                        value = value.Value;
+                    end
+        
+                    % Save to struct
+                    data.(paramName) = value;
+                    fprintf('✅ Saved tunable variable: %s = %s\n', paramName, mat2str(value));
+                end
+            else
+                warning('⚠️ No tunable variables found in app.modelData.');
+            end
+        
+            % === Save to JSON (pretty printed) ===
+            jsonText = jsonencode(data, 'PrettyPrint', true);
+            fid = fopen(fullFileName, 'w');
+            if fid == -1
+                error('❌ Cannot create JSON file.');
+            end
+            fwrite(fid, jsonText, 'char');
+            fclose(fid);
+        
+            disp(['✅ Parameters successfully saved to ', fullFileName]);
+        
+        end
+
+        function loadParametresJSON(app)
+            
+                % === File selection ===
+                [fileName, filePath] = uigetfile('*.json', 'Select JSON Parameter File');
+                if isequal(fileName, 0)
+                    disp('❌ User canceled loading.');
+                    return;
+                end
+                fullFileName = fullfile(filePath, fileName);
+            
+                % === Read JSON ===
+                try
+                    jsonText = fileread(fullFileName);
+                    data = jsondecode(jsonText);
+                catch err
+                    uialert(app.GUI, sprintf('Failed to read JSON file:\n%s', err.message), 'Load Error');
+                    return;
+                end
+            
+                % === Store last loaded parameters for reset function ===
+                app.lastLoadedParameters = data;
+            
+                % === Apply to modelData.tunableVariables ===
+                if isfield(app.modelData, 'tunableVariables') && ~isempty(app.modelData.tunableVariables)
+                    for i = 1:numel(app.modelData.tunableVariables)
+                        paramName = app.modelData.tunableVariables(i).QualifiedName;
+                        if isfield(data, paramName)
+                            newValue = data.(paramName);
+                            originalSize = size(app.modelData.tunableVariables(i).Value);
+                            % Reshape if necessary (for row/column vector consistency)
+                            if isnumeric(newValue) && isvector(newValue) && ~isequal(size(newValue), originalSize)
+                                newValue = reshape(newValue, originalSize);
+                            end
+                            app.modelData.tunableVariables(i).Value = newValue;
+                            fprintf('✅ Loaded parameter: %s = %s\n', paramName, mat2str(newValue));
+                        end
+                    end
+                else
+                    warning('⚠️ No tunable variables found in app.modelData.');
+                end
+            
+                % === Apply to UI components ===
+                allComponents = findall(app.PrmsGL);
+                for i = 1:numel(allComponents)
+                    comp = allComponents(i);
+                    if isa(comp, 'matlab.ui.control.NumericEditField') && ~isempty(comp.Tag)
+                        if isfield(data, comp.Tag)
+                            try
+                                comp.Value = data.(comp.Tag);
+                                fprintf('✅ Updated UI field: %s = %s\n', comp.Tag, mat2str(comp.Value));
+                            catch err
+                                warning('⚠️ Failed to update UI field "%s": %s', comp.Tag, err.message);
+                            end
+                        end
+                    end
+                end
+            
+                % === Refresh Simulation Input ===
+                app.Helper.createSimInp();
+            
+                % === Confirmation ===
+                uialert(app.GUI, 'Parameters loaded and applied successfully.', 'Load Complete');
+            
+            end
+
+
+    end
+
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+            app.Helper = AppHelper(app);
+            app.Helper.startupFcn();
+        end
+
+        % Button pushed function: ScrollTopLeftUIC
+        function ScrollTopLeftUICPushed(app, event)
+            app.Helper.scroll(event.Source);
+        end
+
+        % Button pushed function: ScrollTopRightUIC
+        function ScrollTopRightUICPushed(app, event)
+            app.Helper.scroll(event.Source);
+        end
+
+        % Button pushed function: ScrollBottomRightUIC
+        function ScrollBottomRightUICButtonPushed(app, event)
+            app.Helper.scroll(event.Source);
+        end
+
+        % Button pushed function: ScrollBottomLeftUIC
+        function ScrollBottomLeftUICButtonPushed(app, event)
+            app.Helper.scroll(event.Source);
+        end
+
+        % Button pushed function: ScrollDownUIC
+        function ScrollDownUICButtonPushed(app, event)
+            app.Helper.scroll(event.Source);
+        end
+
+        % Button pushed function: ScrollUpUIC
+        function ScrollUpUICButtonPushed(app, event)
+            app.Helper.scroll(event.Source);
+        end
+
+        % Size changed function: GUI
+        function GUISizeChanged(app, event)
+            if ~app.initialized, return; end
+            app.Helper.setMainGLRowHeight();
+        end
+
+        % Value changed function: NumAxesRows
+        function NumAxesRowsValueChanged(app, event)
+            app.Helper.numAxesRowsValueChanged(event);
+        end
+
+        % Value changed function: NumAxesCols
+        function NumAxesColsValueChanged(app, event)
+            app.Helper.numAxesColsValueChanged(event);
+        end
+
+        % Button pushed function: RunPauseResumeButton
+        function RunPauseResumeButtonPushed(app, event)
+            app.Helper.runPauseResumeButtonPushed(event);
+        end
+
+        % Button pushed function: StopButton
+        function StopButtonPushed(app, event)
+            app.Helper.stopButtonPushed(event);
+        end
+
+        % Close request function: GUI
+        function GUICloseRequest(app, event)
+            app.Helper.guiCloseRequest(event);
+        end
+
+        % Value changed function: PlotRefreshRateHzSlider
+        function PlotRefreshRateHzSliderValueChanged(app, event)
+            app.Helper.plotRefreshRateHzSliderValueChanged();
+        end
+
+        % Menu selected function: ConfigureForDeploymentMenu
+        function ConfigureForDeploymentMenuSelected(app, event)
+            app.Helper.toggleConfigureForDeployment();
+        end
+
+        % Menu selected function: SaveSession
+        function SaveSessionMenuSelected(app, event)
+            app.Helper.saveSession();
+        end
+
+        % Menu selected function: SaveParametersAndInputs
+        function SaveParametersAndInputsMenuSelected(app, event)
+            app.Helper.saveParametersAndInputs();
+        end
+
+        % Menu selected function: LoadSession
+        function LoadSessionMenuSelected(app, event)
+            app.Helper.loadSession();
+        end
+
+        % Menu selected function: LoadParametersAndInputs
+        function LoadParametersAndInputsMenuSelected(app, event)
+            app.Helper.loadParametersAndInputs();
+        end
+
+        % Menu selected function: ResetParametersAndInputs
+        function ResetParametersAndInputsMenuSelected(app, event)
+            app.Helper.resetParametersAndInputs();
+        end
+
+        % Menu selected function: DonnesCSVMenu
+        function DonnesCSVMenuSelected(app, event)
+            app.saveOutput()
+        end
+
+        % Menu selected function: ParamtresJSONMenu
+        function ParamtresJSONMenuSelected(app, event)
+            app.saveParametersToJSON()
+        end
+
+        % Menu selected function: ParamtresJSONMenu_2
+        function ParamtresJSONMenu_2Selected(app, event)
+            app.loadParametresJSON()
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create GUI and hide until all components are created
+            app.GUI = uifigure('Visible', 'off');
+            app.GUI.AutoResizeChildren = 'off';
+            app.GUI.Position = [100 100 700 540];
+            app.GUI.Name = 'MATLAB App';
+            app.GUI.CloseRequestFcn = createCallbackFcn(app, @GUICloseRequest, true);
+            app.GUI.SizeChangedFcn = createCallbackFcn(app, @GUISizeChanged, true);
+            app.GUI.Interruptible = 'off';
+
+            % Create FileMenu
+            app.FileMenu = uimenu(app.GUI);
+            app.FileMenu.Text = 'File';
+
+            % Create SaveMenu
+            app.SaveMenu = uimenu(app.FileMenu);
+            app.SaveMenu.Text = 'Save';
+
+            % Create SaveSession
+            app.SaveSession = uimenu(app.SaveMenu);
+            app.SaveSession.MenuSelectedFcn = createCallbackFcn(app, @SaveSessionMenuSelected, true);
+            app.SaveSession.Text = 'Session';
+
+            % Create SaveParametersAndInputs
+            app.SaveParametersAndInputs = uimenu(app.SaveMenu);
+            app.SaveParametersAndInputs.MenuSelectedFcn = createCallbackFcn(app, @SaveParametersAndInputsMenuSelected, true);
+            app.SaveParametersAndInputs.Text = 'Parameters and Inputs';
+
+            % Create DonnesCSVMenu
+            app.DonnesCSVMenu = uimenu(app.SaveMenu);
+            app.DonnesCSVMenu.MenuSelectedFcn = createCallbackFcn(app, @DonnesCSVMenuSelected, true);
+            app.DonnesCSVMenu.Text = 'Données - CSV';
+
+            % Create ParamtresJSONMenu
+            app.ParamtresJSONMenu = uimenu(app.SaveMenu);
+            app.ParamtresJSONMenu.MenuSelectedFcn = createCallbackFcn(app, @ParamtresJSONMenuSelected, true);
+            app.ParamtresJSONMenu.Text = 'Paramètres - JSON';
+
+            % Create LoadMenu
+            app.LoadMenu = uimenu(app.FileMenu);
+            app.LoadMenu.Text = 'Load';
+
+            % Create LoadSession
+            app.LoadSession = uimenu(app.LoadMenu);
+            app.LoadSession.MenuSelectedFcn = createCallbackFcn(app, @LoadSessionMenuSelected, true);
+            app.LoadSession.Text = 'Session';
+
+            % Create LoadParametersAndInputs
+            app.LoadParametersAndInputs = uimenu(app.LoadMenu);
+            app.LoadParametersAndInputs.MenuSelectedFcn = createCallbackFcn(app, @LoadParametersAndInputsMenuSelected, true);
+            app.LoadParametersAndInputs.Text = 'Parameters and Inputs';
+
+            % Create ParamtresJSONMenu_2
+            app.ParamtresJSONMenu_2 = uimenu(app.LoadMenu);
+            app.ParamtresJSONMenu_2.MenuSelectedFcn = createCallbackFcn(app, @ParamtresJSONMenu_2Selected, true);
+            app.ParamtresJSONMenu_2.Text = 'Paramètres - JSON';
+
+            % Create SettingsMenu
+            app.SettingsMenu = uimenu(app.GUI);
+            app.SettingsMenu.Text = 'Settings';
+
+            % Create ConfigureForDeploymentMenu
+            app.ConfigureForDeploymentMenu = uimenu(app.SettingsMenu);
+            app.ConfigureForDeploymentMenu.MenuSelectedFcn = createCallbackFcn(app, @ConfigureForDeploymentMenuSelected, true);
+            app.ConfigureForDeploymentMenu.Checked = 'on';
+            app.ConfigureForDeploymentMenu.Text = 'Configure for deployment';
+
+            % Create ResetParametersAndInputs
+            app.ResetParametersAndInputs = uimenu(app.SettingsMenu);
+            app.ResetParametersAndInputs.MenuSelectedFcn = createCallbackFcn(app, @ResetParametersAndInputsMenuSelected, true);
+            app.ResetParametersAndInputs.Text = 'Reset Parameters and Inputs';
+
+            % Create MainGL
+            app.MainGL = uigridlayout(app.GUI);
+            app.MainGL.ColumnWidth = {'1x'};
+            app.MainGL.RowHeight = {'fit', '1x', 'fit', '1x'};
+
+            % Create ResultsGL
+            app.ResultsGL = uigridlayout(app.MainGL);
+            app.ResultsGL.ColumnWidth = {'1x'};
+            app.ResultsGL.RowHeight = {'1x', 'fit'};
+            app.ResultsGL.Padding = [0 0 0 0];
+            app.ResultsGL.Tag = 'ResultsGL';
+            app.ResultsGL.Layout.Row = 4;
+            app.ResultsGL.Layout.Column = 1;
+
+            % Create PlotControlsGL
+            app.PlotControlsGL = uigridlayout(app.ResultsGL);
+            app.PlotControlsGL.ColumnWidth = {'fit', '1x', 'fit'};
+            app.PlotControlsGL.RowHeight = {'fit'};
+            app.PlotControlsGL.RowSpacing = 0;
+            app.PlotControlsGL.Padding = [0 0 0 0];
+            app.PlotControlsGL.Layout.Row = 2;
+            app.PlotControlsGL.Layout.Column = 1;
+            app.PlotControlsGL.BackgroundColor = [0.902 0.902 0.902];
+
+            % Create PlotRefreshRateHzSlider
+            app.PlotRefreshRateHzSlider = uislider(app.PlotControlsGL);
+            app.PlotRefreshRateHzSlider.Limits = [-2 2];
+            app.PlotRefreshRateHzSlider.MajorTicks = [-2 -1 0 1 2];
+            app.PlotRefreshRateHzSlider.MajorTickLabels = {'1/100', '1/10', '1', '10', '100'};
+            app.PlotRefreshRateHzSlider.ValueChangedFcn = createCallbackFcn(app, @PlotRefreshRateHzSliderValueChanged, true);
+            app.PlotRefreshRateHzSlider.MinorTicks = [];
+            app.PlotRefreshRateHzSlider.Tag = 'PlotRefreshRateHzSlider';
+            app.PlotRefreshRateHzSlider.Layout.Row = 1;
+            app.PlotRefreshRateHzSlider.Layout.Column = 3;
+            app.PlotRefreshRateHzSlider.FontSize = 8;
+
+            % Create PlotRefreshRateHzSliderLabel
+            app.PlotRefreshRateHzSliderLabel = uilabel(app.PlotControlsGL);
+            app.PlotRefreshRateHzSliderLabel.HorizontalAlignment = 'right';
+            app.PlotRefreshRateHzSliderLabel.Layout.Row = 1;
+            app.PlotRefreshRateHzSliderLabel.Layout.Column = 2;
+            app.PlotRefreshRateHzSliderLabel.Text = 'Refresh Rate (Hz) ';
+
+            % Create PlotLayoutOuterGL
+            app.PlotLayoutOuterGL = uigridlayout(app.PlotControlsGL);
+            app.PlotLayoutOuterGL.ColumnWidth = {'fit'};
+            app.PlotLayoutOuterGL.RowHeight = {'1x', 'fit', '1x'};
+            app.PlotLayoutOuterGL.ColumnSpacing = 0;
+            app.PlotLayoutOuterGL.RowSpacing = 0;
+            app.PlotLayoutOuterGL.Padding = [0 0 0 0];
+            app.PlotLayoutOuterGL.Layout.Row = 1;
+            app.PlotLayoutOuterGL.Layout.Column = 1;
+            app.PlotLayoutOuterGL.BackgroundColor = [0.902 0.902 0.902];
+
+            % Create PlotLayoutGL
+            app.PlotLayoutGL = uigridlayout(app.PlotLayoutOuterGL);
+            app.PlotLayoutGL.ColumnWidth = {'fit', 50, 50};
+            app.PlotLayoutGL.RowHeight = {'fit'};
+            app.PlotLayoutGL.ColumnSpacing = 0;
+            app.PlotLayoutGL.RowSpacing = 0;
+            app.PlotLayoutGL.Padding = [0 0 0 0];
+            app.PlotLayoutGL.Layout.Row = 2;
+            app.PlotLayoutGL.Layout.Column = 1;
+            app.PlotLayoutGL.BackgroundColor = [0.902 0.902 0.902];
+
+            % Create PlotLayoutLabel
+            app.PlotLayoutLabel = uilabel(app.PlotLayoutGL);
+            app.PlotLayoutLabel.Layout.Row = 1;
+            app.PlotLayoutLabel.Layout.Column = 1;
+            app.PlotLayoutLabel.Text = 'Plot Layout ';
+
+            % Create NumAxesRows
+            app.NumAxesRows = uispinner(app.PlotLayoutGL);
+            app.NumAxesRows.Limits = [1 10];
+            app.NumAxesRows.ValueDisplayFormat = '%.0f';
+            app.NumAxesRows.ValueChangedFcn = createCallbackFcn(app, @NumAxesRowsValueChanged, true);
+            app.NumAxesRows.Layout.Row = 1;
+            app.NumAxesRows.Layout.Column = 2;
+            app.NumAxesRows.Value = 1;
+
+            % Create NumAxesCols
+            app.NumAxesCols = uispinner(app.PlotLayoutGL);
+            app.NumAxesCols.Limits = [1 10];
+            app.NumAxesCols.ValueDisplayFormat = '%.0f';
+            app.NumAxesCols.ValueChangedFcn = createCallbackFcn(app, @NumAxesColsValueChanged, true);
+            app.NumAxesCols.Layout.Row = 1;
+            app.NumAxesCols.Layout.Column = 3;
+            app.NumAxesCols.Value = 1;
+
+            % Create SigsGLAndAxesGLShuttersGL
+            app.SigsGLAndAxesGLShuttersGL = uigridlayout(app.ResultsGL);
+            app.SigsGLAndAxesGLShuttersGL.ColumnWidth = {'fit', 'fit', '1x'};
+            app.SigsGLAndAxesGLShuttersGL.RowHeight = {'1x'};
+            app.SigsGLAndAxesGLShuttersGL.Padding = [0 0 0 0];
+            app.SigsGLAndAxesGLShuttersGL.Layout.Row = 1;
+            app.SigsGLAndAxesGLShuttersGL.Layout.Column = 1;
+
+            % Create SigsGLAndAxesGLShutterControlsGL
+            app.SigsGLAndAxesGLShutterControlsGL = uigridlayout(app.SigsGLAndAxesGLShuttersGL);
+            app.SigsGLAndAxesGLShutterControlsGL.ColumnWidth = {'fit'};
+            app.SigsGLAndAxesGLShutterControlsGL.RowHeight = {'1x', 'fit', 'fit', '1x'};
+            app.SigsGLAndAxesGLShutterControlsGL.Padding = [0 0 0 0];
+            app.SigsGLAndAxesGLShutterControlsGL.Layout.Row = 1;
+            app.SigsGLAndAxesGLShutterControlsGL.Layout.Column = 2;
+            app.SigsGLAndAxesGLShutterControlsGL.BackgroundColor = [0.9412 0.9412 0.9412];
+
+            % Create ScrollBottomLeftUIC
+            app.ScrollBottomLeftUIC = uibutton(app.SigsGLAndAxesGLShutterControlsGL, 'push');
+            app.ScrollBottomLeftUIC.ButtonPushedFcn = createCallbackFcn(app, @ScrollBottomLeftUICButtonPushed, true);
+            app.ScrollBottomLeftUIC.Interruptible = 'off';
+            app.ScrollBottomLeftUIC.Tag = 'ScrollBottomLeftUIC';
+            app.ScrollBottomLeftUIC.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.ScrollBottomLeftUIC.FontSize = 10;
+            app.ScrollBottomLeftUIC.Layout.Row = 2;
+            app.ScrollBottomLeftUIC.Layout.Column = 1;
+            app.ScrollBottomLeftUIC.Text = '';
+
+            % Create ScrollBottomRightUIC
+            app.ScrollBottomRightUIC = uibutton(app.SigsGLAndAxesGLShutterControlsGL, 'push');
+            app.ScrollBottomRightUIC.ButtonPushedFcn = createCallbackFcn(app, @ScrollBottomRightUICButtonPushed, true);
+            app.ScrollBottomRightUIC.Tag = 'ScrollBottomRightUIC';
+            app.ScrollBottomRightUIC.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.ScrollBottomRightUIC.FontSize = 10;
+            app.ScrollBottomRightUIC.Layout.Row = 3;
+            app.ScrollBottomRightUIC.Layout.Column = 1;
+            app.ScrollBottomRightUIC.Text = '';
+
+            % Create SigsGL
+            app.SigsGL = uigridlayout(app.SigsGLAndAxesGLShuttersGL);
+            app.SigsGL.ColumnWidth = {'fit', 'fit'};
+            app.SigsGL.RowHeight = {'1x'};
+            app.SigsGL.Padding = [0 0 0 0];
+            app.SigsGL.Tag = 'SigsGL';
+            app.SigsGL.Layout.Row = 1;
+            app.SigsGL.Layout.Column = 1;
+            app.SigsGL.Scrollable = 'on';
+            app.SigsGL.BackgroundColor = [0.9412 0.9412 0.9412];
+
+            % Create AxesGL
+            app.AxesGL = uigridlayout(app.SigsGLAndAxesGLShuttersGL);
+            app.AxesGL.ColumnWidth = {'1x'};
+            app.AxesGL.RowHeight = {'1x'};
+            app.AxesGL.Tag = 'AxesGL';
+            app.AxesGL.Layout.Row = 1;
+            app.AxesGL.Layout.Column = 3;
+
+            % Create ControlsGL
+            app.ControlsGL = uigridlayout(app.MainGL);
+            app.ControlsGL.ColumnWidth = {'1x', 'fit', 'fit', '1x'};
+            app.ControlsGL.RowHeight = {'fit'};
+            app.ControlsGL.Padding = [0 0 0 0];
+            app.ControlsGL.Layout.Row = 3;
+            app.ControlsGL.Layout.Column = 1;
+            app.ControlsGL.BackgroundColor = [0.9412 0.9412 0.9412];
+
+            % Create ScrollUpUIC
+            app.ScrollUpUIC = uibutton(app.ControlsGL, 'push');
+            app.ScrollUpUIC.ButtonPushedFcn = createCallbackFcn(app, @ScrollUpUICButtonPushed, true);
+            app.ScrollUpUIC.Tag = 'ScrollUpUIC';
+            app.ScrollUpUIC.Layout.Row = 1;
+            app.ScrollUpUIC.Layout.Column = 2;
+            app.ScrollUpUIC.Text = '';
+
+            % Create ScrollDownUIC
+            app.ScrollDownUIC = uibutton(app.ControlsGL, 'push');
+            app.ScrollDownUIC.ButtonPushedFcn = createCallbackFcn(app, @ScrollDownUICButtonPushed, true);
+            app.ScrollDownUIC.Tag = 'ScrollDownUIC';
+            app.ScrollDownUIC.Layout.Row = 1;
+            app.ScrollDownUIC.Layout.Column = 3;
+            app.ScrollDownUIC.Text = '';
+
+            % Create ModelHTMLAndPrmsGLShuttersGL
+            app.ModelHTMLAndPrmsGLShuttersGL = uigridlayout(app.MainGL);
+            app.ModelHTMLAndPrmsGLShuttersGL.ColumnWidth = {'1x', 'fit', 'fit'};
+            app.ModelHTMLAndPrmsGLShuttersGL.RowHeight = {'1x'};
+            app.ModelHTMLAndPrmsGLShuttersGL.Padding = [0 0 0 0];
+            app.ModelHTMLAndPrmsGLShuttersGL.Tag = 'ModelHTMLAndPrmsGLShuttersGL';
+            app.ModelHTMLAndPrmsGLShuttersGL.Layout.Row = 2;
+            app.ModelHTMLAndPrmsGLShuttersGL.Layout.Column = 1;
+
+            % Create ModelHTMLAndPrmsGLShutterControlsGL
+            app.ModelHTMLAndPrmsGLShutterControlsGL = uigridlayout(app.ModelHTMLAndPrmsGLShuttersGL);
+            app.ModelHTMLAndPrmsGLShutterControlsGL.ColumnWidth = {'fit'};
+            app.ModelHTMLAndPrmsGLShutterControlsGL.RowHeight = {'1x', 'fit', 'fit', '1x'};
+            app.ModelHTMLAndPrmsGLShutterControlsGL.Padding = [0 0 0 0];
+            app.ModelHTMLAndPrmsGLShutterControlsGL.Layout.Row = 1;
+            app.ModelHTMLAndPrmsGLShutterControlsGL.Layout.Column = 2;
+            app.ModelHTMLAndPrmsGLShutterControlsGL.BackgroundColor = [0.9412 0.9412 0.9412];
+
+            % Create ScrollTopLeftUIC
+            app.ScrollTopLeftUIC = uibutton(app.ModelHTMLAndPrmsGLShutterControlsGL, 'push');
+            app.ScrollTopLeftUIC.ButtonPushedFcn = createCallbackFcn(app, @ScrollTopLeftUICPushed, true);
+            app.ScrollTopLeftUIC.Tag = 'ScrollTopLeftUIC';
+            app.ScrollTopLeftUIC.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.ScrollTopLeftUIC.FontSize = 10;
+            app.ScrollTopLeftUIC.Layout.Row = 2;
+            app.ScrollTopLeftUIC.Layout.Column = 1;
+            app.ScrollTopLeftUIC.Text = '';
+
+            % Create ScrollTopRightUIC
+            app.ScrollTopRightUIC = uibutton(app.ModelHTMLAndPrmsGLShutterControlsGL, 'push');
+            app.ScrollTopRightUIC.ButtonPushedFcn = createCallbackFcn(app, @ScrollTopRightUICPushed, true);
+            app.ScrollTopRightUIC.Tag = 'ScrollTopRightUIC';
+            app.ScrollTopRightUIC.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.ScrollTopRightUIC.FontSize = 10;
+            app.ScrollTopRightUIC.Layout.Row = 3;
+            app.ScrollTopRightUIC.Layout.Column = 1;
+            app.ScrollTopRightUIC.Text = '';
+
+            % Create PrmsGL
+            app.PrmsGL = uigridlayout(app.ModelHTMLAndPrmsGLShuttersGL);
+            app.PrmsGL.ColumnWidth = {'1x', 'fit'};
+            app.PrmsGL.RowHeight = {'fit'};
+            app.PrmsGL.Padding = [0 0 0 0];
+            app.PrmsGL.Tag = 'PrmsGL';
+            app.PrmsGL.Layout.Row = 1;
+            app.PrmsGL.Layout.Column = 3;
+            app.PrmsGL.Scrollable = 'on';
+            app.PrmsGL.BackgroundColor = [0.9412 0.9412 0.9412];
+
+            % Create ModelAndVariablesView
+            app.ModelAndVariablesView = uitabgroup(app.ModelHTMLAndPrmsGLShuttersGL);
+            app.ModelAndVariablesView.Tag = 'ModelHTML';
+            app.ModelAndVariablesView.Layout.Row = 1;
+            app.ModelAndVariablesView.Layout.Column = 1;
+
+            % Create ModelTab
+            app.ModelTab = uitab(app.ModelAndVariablesView);
+            app.ModelTab.Title = 'Model';
+
+            % Create ModelGL
+            app.ModelGL = uigridlayout(app.ModelTab);
+            app.ModelGL.ColumnWidth = {'1x'};
+            app.ModelGL.RowHeight = {'1x'};
+            app.ModelGL.Padding = [0 0 0 0];
+
+            % Create ModelHTML
+            app.ModelHTML = uihtml(app.ModelGL);
+            app.ModelHTML.Layout.Row = 1;
+            app.ModelHTML.Layout.Column = 1;
+
+            % Create SimControlsGL
+            app.SimControlsGL = uigridlayout(app.MainGL);
+            app.SimControlsGL.ColumnWidth = {32, 32, 150, '1x', 150, 150};
+            app.SimControlsGL.RowHeight = {32};
+            app.SimControlsGL.Padding = [0 0 10 0];
+            app.SimControlsGL.Layout.Row = 1;
+            app.SimControlsGL.Layout.Column = 1;
+            app.SimControlsGL.BackgroundColor = [0.902 0.902 0.902];
+
+            % Create RunPauseResumeButton
+            app.RunPauseResumeButton = uibutton(app.SimControlsGL, 'push');
+            app.RunPauseResumeButton.ButtonPushedFcn = createCallbackFcn(app, @RunPauseResumeButtonPushed, true);
+            app.RunPauseResumeButton.Layout.Row = 1;
+            app.RunPauseResumeButton.Layout.Column = 1;
+            app.RunPauseResumeButton.Text = '';
+
+            % Create StopButton
+            app.StopButton = uibutton(app.SimControlsGL, 'push');
+            app.StopButton.ButtonPushedFcn = createCallbackFcn(app, @StopButtonPushed, true);
+            app.StopButton.Enable = 'off';
+            app.StopButton.Layout.Row = 1;
+            app.StopButton.Layout.Column = 2;
+            app.StopButton.Text = '';
+
+            % Create StopTimeGL
+            app.StopTimeGL = uigridlayout(app.SimControlsGL);
+            app.StopTimeGL.RowHeight = {'1x', 'fit', '1x'};
+            app.StopTimeGL.RowSpacing = 0;
+            app.StopTimeGL.Padding = [0 0 0 0];
+            app.StopTimeGL.Layout.Row = 1;
+            app.StopTimeGL.Layout.Column = 3;
+            app.StopTimeGL.BackgroundColor = [0.902 0.902 0.902];
+
+            % Create StopTimeEditFieldLabel
+            app.StopTimeEditFieldLabel = uilabel(app.StopTimeGL);
+            app.StopTimeEditFieldLabel.HorizontalAlignment = 'right';
+            app.StopTimeEditFieldLabel.Layout.Row = 2;
+            app.StopTimeEditFieldLabel.Layout.Column = 1;
+            app.StopTimeEditFieldLabel.Text = 'Stop Time';
+
+            % Create StopTimeEditField
+            app.StopTimeEditField = uieditfield(app.StopTimeGL, 'text');
+            app.StopTimeEditField.Layout.Row = 2;
+            app.StopTimeEditField.Layout.Column = 2;
+            app.StopTimeEditField.Value = '20';
+
+            % Create StatusLabel
+            app.StatusLabel = uilabel(app.SimControlsGL);
+            app.StatusLabel.HorizontalAlignment = 'right';
+            app.StatusLabel.Layout.Row = 1;
+            app.StatusLabel.Layout.Column = 6;
+            app.StatusLabel.Text = '';
+
+            % Create SimTimeLabel
+            app.SimTimeLabel = uilabel(app.SimControlsGL);
+            app.SimTimeLabel.HorizontalAlignment = 'right';
+            app.SimTimeLabel.Layout.Row = 1;
+            app.SimTimeLabel.Layout.Column = 5;
+            app.SimTimeLabel.Text = '';
+
+            % Show the figure after all components are created
+            app.GUI.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = Simulink_asserv_Disc_6Avril_V2023a_app_SLSimApp
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.GUI)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.GUI)
+        end
+    end
+end
