@@ -1,0 +1,432 @@
+import os
+import json
+import customtkinter as ctk
+from MAIN import lancer_simulation  
+from tkinter import messagebox
+from PIL import Image  
+from threading import Thread
+from tkinter import filedialog
+import time
+from tkinter import Toplevel
+
+
+
+###Fais foncitonner images dans l'executable
+import os
+import sys
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+
+ctk.set_appearance_mode("dark")  
+ctk.set_default_color_theme("blue")  
+
+class SimulationInterface(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Simulation Thermique")
+        self.geometry("1250x860")
+        # Définition des paramètres par section
+        self.thermistances = {
+            "Position_x_T1_(m)": "0.10475", "Position_y_T1_(m)": "0.031",
+            "Position_x_T2_(m)": "0.05835", "Position_y_T2_(m)": "0.031",
+            "Position_x_T3_(m)": "0.01225", "Position_y_T3_(m)": "0.031"
+        }
+
+        self.tec = {
+            "Position_x_TEC_(m)": "0.096", "Position_y_TEC_(m)": "0.031",
+            "Dimension_x_TEC_(m)": "0.015", "Dimension_y_TEC_(m)": "0.0156",
+            "Coefficient_couplage_a": "0.1493",  
+            "Coefficient_couplage_b": "1.3291"
+        }
+
+        self.plaque = {
+            "Dimension_x_plaque_(m)": "0.11875", "Dimension_y_plaque_(m)": "0.062",
+            "Dimension_z_plaque_(m)": "0.0016", "Coéfficient_convection_(W/m²K)": "14",
+            "Température_initiale_(°C)": "24", "Largeur_élement_fini_dx_(m)": "0.001",
+            "Largeur_élement_fini_dy_(m)": "0.001"
+        }
+
+        self.proprietes_materiau = {
+            "Conductivité_thermique_(W/mK)": "180", "Densité_(kg/m³)": "2700",
+            "Capacité_thermique_(J/KgK)": "900"
+        }
+
+        self.details_simulation = {
+            #"Échelon_courant_(A)": "-0.7",
+            "Temps_simulation_(s)": "1000",
+            "Position_x_perturbation_(m)": "0.05",  # Nouveau champ pour la position X
+            "Position_y_perturbation_(m)": "0.03",  # Nouveau champ pour la position Y
+            "Puissance_perturbation_(W)": "0.2", # Nouveau champ pour la puissance thermique
+            "Temps_avant_d'appliquer_la_perturbation_(s)": "100" 
+            
+        }
+        self.details_simulation.update({
+            "Échelon_courant_1_(A)": "-0.5",
+            "Durée_échelon_1_(s)": "500",
+            "Échelon_courant_2_(A)": "-1",
+            "Durée_échelon_2_(s)": "500"
+        })
+
+        self.create_widgets()
+        # Créer un cadre pour la barre de loading, le chronomètre, les boutons et la phrase "temps restant"
+        frame_status = ctk.CTkFrame(self)
+        frame_status.grid(row=0, column=5, rowspan=10, padx=20, pady=10, sticky="ns")
+
+        # Ajouter les boutons directement dans ce cadre
+        ctk.CTkButton(frame_status, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
+        ctk.CTkButton(frame_status, text="Enregistrer Paramètres", command=self.enregistrer_parametres_manuellement).pack(pady=10)
+        ctk.CTkButton(frame_status, text="Lancer Simulation", command=self.lancer_simulation_interface, fg_color="#1e90ff", font=("Arial", 12, "bold")).pack(pady=30)
+        # Texte d'état
+        self.label = ctk.CTkLabel(frame_status, text="En attente de simulation", font=("Arial", 14))
+        self.label.pack(pady=10, padx=20)
+
+        # Barre de progression
+        self.progress_bar = ctk.CTkProgressBar(frame_status, orientation="horizontal")
+        self.progress_bar.pack(pady=10, padx=20)
+        self.progress_bar.set(0)  # Initialise à 0%
+
+        # Chronomètre
+        self.chrono_label = ctk.CTkLabel(frame_status, text="Temps écoulé : 0s", font=("Arial", 14))
+        self.chrono_label.pack(pady=10, padx=20)
+
+
+        # Ajouter le bouton avec l'icône et le texte cliquable
+        manual_button = ctk.CTkButton(
+            frame_status, 
+            text="Manuel d'utilisateur", 
+            command=self.show_manual, 
+        )
+        manual_button.pack(pady=10)
+
+    def ajouter_image(self):
+        """Ajoute une image explicative sous les paramètres avec un titre"""
+        try:
+            # Chemin vers l'image
+            #chemin_image = os.path.join(os.path.dirname(__file__), "schémadimensions.png")
+            chemin_image = resource_path("schémadimensions.png")
+
+            # Créer un cadre pour l'image et le titre
+            frame_image = ctk.CTkFrame(self)
+            frame_image.grid(row=15, column=0, columnspan=4, pady=20, padx=10, sticky="nsew")
+
+            frame_image.place(x=50, y=475) 
+
+            # Ajouter un titre au-dessus de l’image
+            titre = ctk.CTkLabel(frame_image, text="Schéma des dimensions demandées", font=("Arial", 14, "bold"))
+            titre.pack(pady=(10, 5))
+
+            # Charger et afficher l’image
+            image = ctk.CTkImage(light_image=Image.open(chemin_image), size=(610, 320))  # Augmente la taille
+            label_image = ctk.CTkLabel(frame_image, image=image, text="")
+            label_image.pack(pady=5)
+
+        except Exception as e:
+            print(f"Erreur lors du chargement de l'image : {e}")
+
+    def enregistrer_parametres_manuellement(self):
+        """Demande à l'utilisateur où il souhaite enregistrer les paramètres"""
+        fichier = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Fichiers JSON", "*.json"), ("Tous les fichiers", "*.*")])
+        if fichier:
+            params = {**self.get_values(self.thermistances),
+                      **self.get_values(self.tec),
+                      **self.get_values(self.plaque),
+                      **self.get_values(self.proprietes_materiau),
+                      **self.get_values(self.details_simulation)}
+            
+            params["Sources_chaleur"] = [{
+                "x": params.pop("Position_x_perturbation_(m)"),
+                "y": params.pop("Position_y_perturbation_(m)"),
+                "puissance": params.pop("Puissance_perturbation_(W)")
+            }]
+            
+            with open(fichier, "w") as f:
+                json.dump(params, f, indent=4)
+            
+            messagebox.showinfo("Succès", f"Les paramètres ont été sauvegardés dans {fichier}")
+        else:
+            messagebox.showwarning("Aucun fichier", "Aucun fichier n'a été sélectionné.")
+
+    def create_widgets(self):
+        """Crée et place les widgets dans l'interface en sections"""
+        self.create_section("Thermistances", self.thermistances, 0)
+        self.create_section("TEC", self.tec, 1)
+        self.create_section("Plaque", self.plaque, 2)
+        self.create_section("Propriétés du matériau", self.proprietes_materiau, 3)
+        self.create_section("Détails de la simulation", self.details_simulation, 4, add_button=True)
+        self.ajouter_image()
+
+
+
+
+    def create_section(self, title, parameters, col, add_button=False):
+        """Crée une section avec un titre et des entrées pour les paramètres."""
+        frame = ctk.CTkFrame(self)
+        frame.grid(row=0, column=col, padx=10, pady=10, sticky="n")
+
+        ctk.CTkLabel(frame, text=title, font=("Arial", 14, "bold")).pack(pady=5)
+        
+        for key, default_value in parameters.items():
+            var = ctk.StringVar(value=default_value)
+            parameters[key] = var  # Stocker la variable pour la récupérer plus tard
+            ctk.CTkLabel(frame, text=key.replace("_", " ")).pack(anchor="w")
+            ctk.CTkEntry(frame, textvariable=var).pack(pady=2)
+
+
+    def update_progress(self, progress):
+        """ Update the progress bar """
+        self.progress_bar.set(progress/100)
+
+        if (progress > 0):
+            tempRestant = int(int((((100/progress)-1)*self.elapsed_time)/5)*5)
+            self.label.configure(text=f"Temps restant : {tempRestant}s")
+
+        if progress >= 95:
+            self.chrono_running = False
+            self.label.configure(text="Simulation terminée !")
+
+
+    def lancer_simulation_interface(self):
+        """Récupère les paramètres et lance la simulation."""
+
+        try:
+            params = {**self.get_values(self.thermistances),
+                    **self.get_values(self.tec),
+                    **self.get_values(self.plaque),
+                    **self.get_values(self.proprietes_materiau),
+                    **self.get_values(self.details_simulation)}
+            
+            #self.sauvegarder_parametres()
+            params["Temps_avant_d'appliquer_la_perturbation_(s)"] = params.pop("Temps_avant_d'appliquer_la_perturbation_(s)")
+            # Transformation des valeurs de perturbation en une liste de sources
+            params["Sources_chaleur"] = [{
+                "x": params.pop("Position_x_perturbation_(m)"),
+                "y": params.pop("Position_y_perturbation_(m)"),
+                "puissance": params.pop("Puissance_perturbation_(W)")
+            }]
+            params["Échelon_courant_1_(A)"] = params.pop("Échelon_courant_1_(A)")
+            params["Durée_échelon_1_(s)"] = params.pop("Durée_échelon_1_(s)")
+            params["Échelon_courant_2_(A)"] = params.pop("Échelon_courant_2_(A)")
+            params["Durée_échelon_2_(s)"] = params.pop("Durée_échelon_2_(s)")
+
+            if params["Échelon_courant_1_(A)"] > 3 or params["Échelon_courant_2_(A)"] > 3 or params["Échelon_courant_1_(A)"] < -3 or params["Échelon_courant_2_(A)"] < -3:
+                messagebox.showerror("Attention!!!", "Les échelons en courant sont d'amplitude plus élevée que confirmé, le simulateur pourrait ne pas représenter la réalité.")
+
+            print("Paramètres récupérés :", params)
+            
+            self.label.configure(text="Simulation en cours...")
+
+            thread = Thread(target=self.run_simulation_with_error_handling, args=(params,), daemon=True)
+            
+            # Lancer le chronomètre dans un thread séparé
+            self.chrono_thread = Thread(target=self.start_chronometer, daemon=True)
+            self.chrono_thread.start()
+
+            thread.start()
+
+        except ValueError:
+            messagebox.showerror("Erreur", "Veuillez entrer des valeurs numériques valides.")
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Une erreur inattendue est survenue : {e}")
+
+    def run_simulation_with_error_handling(self, params):
+        """Lance la simulation et gère les erreurs éventuelles."""
+        try:
+            lancer_simulation(params, self.update_progress)
+        except Exception as e:
+            self.chrono_running = False
+            self.label.configure(text="Erreur lors de la simulation.")
+            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation. Vérifiez les pramètres entrés.\n{e}")
+
+
+    def get_values(self, param_dict):
+        """Convertit les valeurs des dictionnaires en float."""
+        return {key: float(var.get()) for key, var in param_dict.items()}
+
+#cette partie permet de sauvegarder directement dans le fichier derniere_simulation que 
+#nous avons dans le github
+
+    # def sauvegarder_parametres(self):
+    #     """Sauvegarde les paramètres actuels dans un fichier JSON."""
+    #     params = {**self.get_values(self.thermistances),
+    #             **self.get_values(self.tec),
+    #             **self.get_values(self.plaque),
+    #             **self.get_values(self.proprietes_materiau),
+    #             **self.get_values(self.details_simulation)}
+
+    #     params["Sources_chaleur"] = [{
+    #         "x": params.pop("Position_x_perturbation_(m)"),
+    #         "y": params.pop("Position_y_perturbation_(m)"),
+    #         "puissance": params.pop("Puissance_perturbation_(W)")
+    #     }]
+
+    #     with open("derniere_simulation.json", "w") as f:
+    #         json.dump(params, f, indent=4)
+        
+    #     print("Paramètres sauvegardés dans 'derniere_simulation.json'")
+
+
+    def charger_parametres(self):
+        """Charge un fichier JSON et remplit les entrées de l'interface avec ces valeurs."""
+        fichier = filedialog.askopenfilename(filetypes=[("Fichiers JSON", "*.json")])
+        if not fichier:
+            return  
+
+        try:
+            with open(fichier, "r") as f:
+                params = json.load(f)
+
+            # Répartir les valeurs dans les dictionnaires de l'interface
+            for key, var in {**self.thermistances, **self.tec, **self.plaque, **self.proprietes_materiau, **self.details_simulation}.items():
+                if key in params:
+                    var.set(str(params[key]))  # Remettre sous forme de string pour les champs d'entrée
+
+            # Remettre les valeurs des perturbations
+            if "Sources_chaleur" in params and len(params["Sources_chaleur"]) > 0:
+                source = params["Sources_chaleur"][0]
+                self.details_simulation["Position_x_perturbation_(m)"].set(str(source["x"]))
+                self.details_simulation["Position_y_perturbation_(m)"].set(str(source["y"]))
+                self.details_simulation["Puissance_perturbation_(W)"].set(str(source["puissance"]))
+
+
+            print("Paramètres chargés avec succès depuis", fichier)
+
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Impossible de charger le fichier JSON.\n{e}")
+    
+
+    def start_chronometer(self):
+        """Démarre le chronomètre et met à jour l'affichage du temps écoulé."""
+        self.chrono_running = True
+        self.start_time = time.time()
+
+        while self.chrono_running:
+            self.elapsed_time = int(time.time() - self.start_time)
+            self.chrono_label.configure(text=f"Temps écoulé : {self.elapsed_time}s")
+            time.sleep(1)  # Attendre 1 seconde avant la mise à jour
+
+
+    def show_manual(self):
+        """Ouvre une nouvelle fenêtre contenant le manuel d'utilisation."""
+        manual_window = Toplevel(self)
+        manual_window.title("Manuel d'utilisation")
+        manual_window.geometry("1400x900")  # Augmenter la largeur pour deux colonnes
+
+        frame = ctk.CTkFrame(manual_window)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Texte pour la première colonne (points 1 et 2)
+        manual_text_col1 = """
+        ==============================
+        Manuel d'utilisateur : Interface de Simulation Thermique
+        ==============================
+
+        Bienvenue dans le manuel d'utilisateur !
+
+        Cette application vous permet de simuler la distribution de la température sur une plaque thermique.
+        Vous pouvez configurer différents paramètres tels que la position des thermistances,
+        les caractéristiques du matériau, et bien plus encore.
+
+        Étapes pour utiliser l'application:
+            1. Saisissez les valeurs des paramètres de simulation.
+            2. Cliquez sur "Lancer Simulation" pour démarrer.
+            3. Surveillez l'évolution de la température pendant la simulation.
+
+        ---------------------------------------------------------------------
+        1. Précision sur les paramètres
+        ---------------------------------------------------------------------
+
+        -Thermistances:
+            Les thermistances permettent de mesurer la température en différents points de la plaque. Les positions 
+            de celles-ci sont à spécifier en se basant sur l'image présente dans l'interface.
+
+        -TEC:
+            La section TEC est pour l'actuateur thermoélectrique. Les positions sont aussi déterminées en se basant sur l'image incluse
+            dans l'interface. Les coefficients a et b mentionnés dans cette section sont reliés au couplage entre l'actuateur et la plaque.
+            Pour cette simulation, il a été assumé que l'actuateur thermoélectrique transfère une puissance thermique stable à la plaque 
+            qui dépend uniquement du courant qui lui est procuré. Pour le modéliser, un polynôme de degré deux, qui représente la 
+            relation entre la puissance thermique absorbée par la plaque et le courant, est utilisé. Les coefficients ajustables 
+            sont donc les coefficients du polynôme.
+
+        -Détails de la simulation:
+            Cette section permet de contrôler la simulation comme l'utilisateur le désire.
+
+            Temps de simulation: représente la durée totale désirée pour la simulation.
+            
+            Échelons de courant et durées: il est possible de spécifier un premier échelon de courant à appliquer sur la plaque ainsi que 
+            la durée de cet échelon. Cela laisse la liberté à l'utilisateur de pouvoir tester deux régimes différents dans une même
+            simulation. 
+                Exemple: Échelon 1, durée 100s et échelon 2, durée 200s -> un échelon de courant de la valeur de échelon1 sera envoyé 
+                à la plaque pendant 100s et ensuite, un échelon de courant de la valeur de échelon2 sera envoyé à la plaque à partir de 
+                100s pendant 200s.
+
+            Perturbation: il est possible de spécifier une perturbation supplémentaire en puissance à appliquer à un point précis sur la 
+            plaque. Le délai avant d'appliquer celle-ci peut aussi être spécifié. Par exemple, un délai de 100s signifie que la simulation 
+            commencera sans perturbation supplémentaire, mais qu'à partir de 100s, la perturbation sera appliquée à l'endroit spécifié 
+            jusqu'à la fin de la simulation.
+        """
+
+        # Texte pour la deuxième colonne (points 3 et 4)
+        manual_text_col2 = """
+        ---------------------------------------------------------------------
+        2. Restrictions et contraintes
+        ---------------------------------------------------------------------
+
+        Pour assurer la stabilité de la simulation et la cohérence physique des résultats, certaines contraintes doivent être respectées :
+
+        - Échelon de courant maximal: la simulation supporte un échelon de courant allant jusqu'à ± 3 A.
+        - Température initiale: doit être définie dans un intervalle réaliste pour éviter les instabilités numériques. Le présent simulateur 
+        est optimal sur une plage de températures entre 20°C et 30°C. Une température initiale en dehors de cette plage peut tout de 
+        même fonctionner, mais peut être instable et ne pas représenter la réalité.
+        - Durées et dimensions: toutes les durées et dimensions spécifiées dans la simulation ne peuvent être des valeurs négatives.
+        - Positions: toutes les positions spécifiées doivent être dans la plaque (Thermistances, TEC, Perturbation).
+
+        ---------------------------------------------------------------------
+        3. Gestion des erreurs
+        ---------------------------------------------------------------------
+
+        L'interface génère des erreurs dans les cas suivants :
+
+            - Une valeur non numérique est saisie. Note: les chiffres à virgules doivent être écrits avec des points.
+            - Une valeur négative est saisie dans un champ où ce n'est pas permis.
+            - Une position ou une dimension dépasse les limites de la plaque.
+            - Un échelon trop élevé ou trop bas qui ne permettra pas de représenter la réalité est entré. La simulation
+            va, cependant, tout de même s'effectuer.
+
+        En cas d'erreur, un message s'affichera pour vous inviter à corriger les valeurs incorrectes.
+
+        ---------------------------------------------------------------------
+        4. Fonctionnalités supplémentaires
+        ---------------------------------------------------------------------
+
+        - Charger Paramètres: permet de charger un fichier JSON enregistré contenant une configuration précédente.
+        - Lancer Simulation: exécute la simulation avec les paramètres saisis dans l'interface.
+        - Enregistrer Paramètres: permet de sauvegarder, à l'endroit désiré, les paramètres actuels dans un fichier JSON.
+        - Enregistrer les résultats: permet de sauvegarder, à l'endroit désiré, les résultats des courbes des trois thermistances
+        dans un fichier CSV.
+        """
+
+        # Création des deux colonnes sous forme de textboxes
+        col1 = ctk.CTkTextbox(frame, wrap="word", font=("Arial", 12), width=725, height=800, text_color="white", bg_color="black")
+        col1.insert("1.0", manual_text_col1)
+        col1.configure(state="disabled")  # Empêcher l'édition
+        col1.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+
+        col2 = ctk.CTkTextbox(frame, wrap="word", font=("Arial", 12), width=725, height=800, text_color="white", bg_color="black")
+        col2.insert("1.0", manual_text_col2)
+        col2.configure(state="disabled")  # Empêcher l'édition
+        col2.grid(row=0, column=1, padx=5, pady=5, sticky="nw")
+
+        # Ajouter un bouton de fermeture
+        close_button = ctk.CTkButton(manual_window, text="Fermer", command=manual_window.destroy)
+        close_button.pack(pady=10)
+
+if __name__ == "__main__":
+    app = SimulationInterface()
+    app.mainloop()

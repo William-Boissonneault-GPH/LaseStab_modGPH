@@ -18,6 +18,10 @@ def lancer_simulation(params, progressCallback):
     dim_x = params["Dimension_x_plaque_(m)"]
     dim_y = params["Dimension_y_plaque_(m)"]
     dim_z = params["Dimension_z_plaque_(m)"]
+
+    dim_dx = params['Largeur_élement_fini_dx_(m)']
+    dim_dy = params['Largeur_élement_fini_dy_(m)']
+
     h = params["Coéfficient_convection_(W/m²K)"]
     cp = params["Capacité_thermique_(J/KgK)"]
     k = params["Conductivité_thermique_(W/mK)"]
@@ -47,7 +51,7 @@ def lancer_simulation(params, progressCallback):
     coeff_b= params["Coefficient_couplage_b"]
 
     # Création de la plaque thermique avec les paramètres de l'interface
-    PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), (k, rho, cp), h, (0.001, 0.001), T_init)
+    PlaqueA = PlaqueThermique((dim_x, dim_y, dim_z), (k, rho, cp), h, (dim_dx, dim_dy), T_init)
     TecA = ActionneurThermiqueSIMPLE((pos_x_TEC, pos_y_TEC), (dim_x_TEC, dim_y_TEC), PlaqueA.matTemperature, PlaqueA.dimensionsElementFinie, coeff_a, coeff_b)
 
     # Création des thermorésistances avec les positions spécifiées par l'utilisateur
@@ -66,22 +70,36 @@ def lancer_simulation(params, progressCallback):
     TecA.updateMatQTECCourrant(echelonCourant1)
 
     totalTime = totalTime
-    # 0.25 doit rester en bas de 0.5 !!!! 
-    dTime = ((rho * cp * 0.001 * 0.001) * 0.2) / k
+    #Choix dT en 2D
+    dTime = 0.4 * (rho * cp / k) * ((1/dim_dx)**2+(1/dim_dy)**2)**-1
+
+
     print(f"dt = {dTime}")
 
 
     num_frames = int(totalTime * (1/dTime))
     ##Animation steps détermine la mémoire utilisé dans l'ordi!
-    #animationStep = 1600
-    animationStep = 1600
-    plotRes = 10
+    ##PlotRes est le nombre de steps d'animation avant de conserver le data point
+    animationStep = int(num_frames / 200)
+    plotRes = int(animationStep / 160)
+    animationStep = plotRes * 160
+
+    if animationStep == 0:
+        animationStep = 1
+    if plotRes == 0:
+        plotRes = 1
+
+    print(f"plot res: {plotRes}")
     
     video = []
     temperatures = [[], [], []]
     plottingTemp = [[],[],[]]
     plottingtemp = []
     time1 = []
+    currentCourant = 0
+    currentPerturbation = 0
+    plottingCourant = []
+    plottingPerturbation = []
 
 
 
@@ -96,8 +114,10 @@ def lancer_simulation(params, progressCallback):
         # Gestion de l'échelon de courant
         if current_time <= dureeEchelon1:
             TecA.updateMatQTECCourrant(echelonCourant1)
+            currentCourant = echelonCourant1
         elif dureeEchelon1 < current_time <= (dureeEchelon1 + dureeEchelon2):
             TecA.updateMatQTECCourrant(echelonCourant2)
+            currentCourant = echelonCourant2
         else:
             TecA.updateMatQTECCourrant(0)
 
@@ -105,10 +125,12 @@ def lancer_simulation(params, progressCallback):
         if current_time >= temps_attente and not perturbation_appliquee:
             mat_perturb = PlaqueA.generer_mat_pertub(sources_chaleur)  # Générer la perturbation
             perturbation_appliquee = True  # Empêcher de l'appliquer plusieurs fois
+            currentPerturbation = sources_chaleur[0]["puissance"] 
 
         # Si on est avant le temps d'attente, pas de perturbation appliquée
         if current_time < temps_attente:
             sources_chaleur_actuelles = np.zeros_like(mat_perturb)  # Matrice nulle si la perturbation ne doit pas encore être appliquée
+            currentPerturbation = 0
 
         else:
             sources_chaleur_actuelles = mat_perturb
@@ -122,6 +144,8 @@ def lancer_simulation(params, progressCallback):
             for j, thermistance in enumerate(Thermistances):
                 plottingTemp[j].append(thermistance.lire_temperature())
             plottingtemp.append(i * dTime)
+            plottingCourant.append(currentCourant)
+            plottingPerturbation.append(currentPerturbation)
         else:
             PlaqueA.propagationDunPasDeTemps(dTime, T_init, [TecA.matQTEC, sources_chaleur_actuelles])
 
@@ -147,11 +171,18 @@ def lancer_simulation(params, progressCallback):
     ax_savebutton = fig.add_subplot(gs[2])
     ax_savebutton.axis("off")
 
-    im = ax_im.imshow(video[0], cmap='viridis', interpolation='none')
+
+
+    ###Affichage des bonnes dimensions (en mm) sur le graphique
+    height, width = video[0].shape
+    x0, x1 = 0, width * PlaqueA.dimensionsElementFinie["dX"] * 1000
+    y0, y1 = height * PlaqueA.dimensionsElementFinie["dY"] * 1000, 0
+
+    im = ax_im.imshow(video[0], cmap='viridis', interpolation='none', extent=[x0, x1, y0, y1])
     cbar = plt.colorbar(im, ax=ax_im)
     cbar.set_label('Température en °C')
-    ax_im.set_xlabel('Position en X (m)') 
-    ax_im.set_ylabel('Position en Y (m)')  
+    ax_im.set_xlabel('Position en X (mm)') 
+    ax_im.set_ylabel('Position en Y (mm)') 
 
     max_value = np.max(video)
     min_value = np.min(video)
@@ -172,7 +203,7 @@ def lancer_simulation(params, progressCallback):
 
     def update(frame):
         im.set_array(video[frame])
-        ax_im.set_title(f"Temps = {round(frame * animationStep * dTime, 2)} (s)")
+        ax_im.set_title(f"Temps = {int(frame * animationStep * dTime)} (s)")
 
         line_hist1.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[0][:frame * plotRes + 1])
         line_hist2.set_data(plottingtemp[:frame * plotRes + 1], plottingTemp[1][:frame * plotRes + 1])
@@ -196,8 +227,8 @@ def lancer_simulation(params, progressCallback):
         if file_path:
             with open(file_path, "w", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["time(s)", "tempTec", "tempMilieu", "tempLaser"])
-                writer.writerows(zip(time1, temperatures[0], temperatures[1], temperatures[2]))
+                writer.writerow(["time(s)", "T1", "T2", "T3", "Courant (A)", "Perturbation (W thermique)"])
+                writer.writerows(zip(plottingtemp, plottingTemp[0], plottingTemp[1], plottingTemp[2], plottingCourant, plottingPerturbation))
             print(f"CSV file saved successfully at {file_path}!")
 
     savebutton.on_clicked(save_data)

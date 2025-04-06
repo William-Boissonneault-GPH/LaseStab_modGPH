@@ -17,7 +17,7 @@ class SimulationInterface(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Simulation Thermique")
-        self.geometry("1500x950")
+        self.geometry("1250x860")
         # Définition des paramètres par section
         self.thermistances = {
             "Position_x_T1_(m)": "0.10475", "Position_y_T1_(m)": "0.031",
@@ -35,7 +35,8 @@ class SimulationInterface(ctk.CTk):
         self.plaque = {
             "Dimension_x_plaque_(m)": "0.11875", "Dimension_y_plaque_(m)": "0.062",
             "Dimension_z_plaque_(m)": "0.0016", "Coéfficient_convection_(W/m²K)": "14",
-            "Température_initiale_(°C)": "24"
+            "Température_initiale_(°C)": "24", "Largeur_élement_fini_dx_(m)": "0.001",
+            "Largeur_élement_fini_dy_(m)": "0.001"
         }
 
         self.proprietes_materiau = {
@@ -45,18 +46,18 @@ class SimulationInterface(ctk.CTk):
 
         self.details_simulation = {
             #"Échelon_courant_(A)": "-0.7",
-            "Temps_simulation_(s)": "400",
+            "Temps_simulation_(s)": "1000",
             "Position_x_perturbation_(m)": "0.05",  # Nouveau champ pour la position X
             "Position_y_perturbation_(m)": "0.03",  # Nouveau champ pour la position Y
-            "Puissance_perturbation_(W)": "0.3", # Nouveau champ pour la puissance thermique
-            "Temps_avant_d'appliquer_la_perturbation_(s)": "300" 
+            "Puissance_perturbation_(W)": "0.1", # Nouveau champ pour la puissance thermique
+            "Temps_avant_d'appliquer_la_perturbation_(s)": "100" 
             
         }
         self.details_simulation.update({
-            "Échelon_courant_1_(A)": "-0.7",
-            "Durée_échelon_1_(s)": "200",
-            "Échelon_courant_2_(A)": "0.5",
-            "Durée_échelon_2_(s)": "200"
+            "Échelon_courant_1_(A)": "-0.5",
+            "Durée_échelon_1_(s)": "500",
+            "Échelon_courant_2_(A)": "-1",
+            "Durée_échelon_2_(s)": "500"
         })
 
         self.create_widgets()
@@ -66,8 +67,8 @@ class SimulationInterface(ctk.CTk):
 
         # Ajouter les boutons directement dans ce cadre
         ctk.CTkButton(frame_status, text="Charger Paramètres", command=self.charger_parametres).pack(pady=5)
-        ctk.CTkButton(frame_status, text="Lancer Simulation", command=self.lancer_simulation_interface).pack(pady=10)
         ctk.CTkButton(frame_status, text="Enregistrer Paramètres", command=self.enregistrer_parametres_manuellement).pack(pady=10)
+        ctk.CTkButton(frame_status, text="Lancer Simulation", command=self.lancer_simulation_interface, fg_color="#1e90ff", font=("Arial", 12, "bold")).pack(pady=30)
         # Texte d'état
         self.label = ctk.CTkLabel(frame_status, text="En attente de simulation", font=("Arial", 14))
         self.label.pack(pady=10, padx=20)
@@ -99,6 +100,8 @@ class SimulationInterface(ctk.CTk):
             # Créer un cadre pour l'image et le titre
             frame_image = ctk.CTkFrame(self)
             frame_image.grid(row=15, column=0, columnspan=4, pady=20, padx=10, sticky="nsew")
+
+            frame_image.place(x=50, y=475) 
 
             # Ajouter un titre au-dessus de l’image
             titre = ctk.CTkLabel(frame_image, text="Schéma des dimensions demandées", font=("Arial", 14, "bold"))
@@ -166,7 +169,7 @@ class SimulationInterface(ctk.CTk):
         self.progress_bar.set(progress/100)
 
         if (progress > 0):
-            tempRestant = int(((100/progress)-1)*self.elapsed_time)
+            tempRestant = int(int((((100/progress)-1)*self.elapsed_time)/5)*5)
             self.label.configure(text=f"Temps restant : {tempRestant}s")
 
         if progress >= 95:
@@ -224,7 +227,7 @@ class SimulationInterface(ctk.CTk):
         except Exception as e:
             self.chrono_running = False
             self.label.configure(text="Erreur lors de la simulation.")
-            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation. Vérifiez les pramètres entrés.{e}")
+            messagebox.showerror("Erreur de Simulation", f"Une erreur est survenue pendant la simulation. Vérifiez les pramètres entrés.\n{e}")
 
 
     def get_values(self, param_dict):
