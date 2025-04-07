@@ -5,17 +5,17 @@ import csv
 from scipy.interpolate import UnivariateSpline
 from scipy.stats import linregress
 
-"""Ce fichier, combiné au code source du simulateur physique, permet l'identification d'un quelqu'onque protoype
-Du travai manuel dans le code est necessaire pour activer chaque étape d'identification. Cela dit chaque fonction utilisé
-Ce retrouve dans ce fichier.
+"""Ce fichier, combiné au code source du simulateur physique, permet l'identification d'un quelconque protoype
+Du travail manuel dans le code est necessaire pour activer chaque étape d'identification. Cela dit, chaque fonction utilisée
+se retrouve dans ce fichier.
 
-1. L'indentification du coeficients de convection (h) est déterminé par la dérivée de température T2 T3 à le fermeture du TEC
-à plusieurs niveau. Une regression linéaire est utilisé pour obtenir le h final 
+1. L'indentification du coeficient de convection (h) est déterminé par la dérivée de température T2 T3 à la fermeture du TEC
+à plusieurs niveau. Une regression linéaire est utilisée pour obtenir le h final 
 
 2. Le ratio T3-Tamb/T1-Tamb peut être ajusté avec k pour son identification.
 
-3. Finalement, le TEC est lui même identifié en effectuant 7 simulations en simultané pour chaque puissance de TEC récolté. Permettant 
-la modélisation du TEC par un polynome de degrée deux"""
+3. Finalement, le TEC est lui même identifié en effectuant 7 simulations en simultané pour chaque puissance de TEC récoltée. Ce qui 
+permet la modélisation du TEC par un polynome de degré deux"""
 
 from PlaqueThermique import PlaqueThermique
 from ActuateurThermique import ActionneurThermique

@@ -1,9 +1,11 @@
 
 
-balbslbasl
+Ce fichier accompagne le projet de simulation thermique développé dans le cadre du cours.
+Il contient les ressources nécessaires à la compréhension des différentes sections ainsi qu'à l’utilisation de celles-ci.
 
 
-NOM et NI 
+Claudie Rodrigue : 537 156 763, William Boissonneault : 537 032 683, Mathieu Chénard : 111 260 766, 
+Zacharie Paquet: 537 143 448, Manuella Tague : 537 182 248, Alexis Coté : 111 161 417
 
 
 Inclus dans ce fichier: 
