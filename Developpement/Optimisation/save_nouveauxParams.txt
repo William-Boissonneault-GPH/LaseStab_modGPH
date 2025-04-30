@@ -1,0 +1,100 @@
+{
+  "AmbiantTemp": 23,
+  "BruitMesure": 2.2E-6,
+  "CondSig_mesureTemp_Gain": 3.3,
+  "CondSig_mesureTemp_Vsub": 1.95,
+  "Consigne1_Temps": 640,
+  "Consigne1_Valeur": 30,
+  "Consigne2_Temps": 1290,
+  "Consigne2_Valeur": 20,
+  "Consigne3_Temps": 2130,
+  "Consigne3_Valeur": 25,
+  "DivTen_mesureTemp_R_pullup": 10000,
+  "DivTen_mesureTemp_Vcc": 5,
+  "Gain_Comparateur_VoltageControle": 0.32,
+  "GuT1_Numerateur": 8.93,
+  "GuT2_Numerateur": 6.9703,
+  "GuT3_Numerateur": 5.94,
+  "NbrsBits_ADC": 10,
+  "NbrsBits_DAC": 8,
+  "PerturbT1_Numerateur": 20.9,
+  "PerturbT2_Numerateur": 22,
+  "PerturbT3_Numerateur": 18.7,
+  "Perturbation_Resistance": 25,
+  "Perturbation_TempsApplication": 100,
+  "Perturbation_Tension": 0,
+  "SaturationLimite_inferieure": 20,
+  "SaturationLimite_superieure": 30,
+  "SourceCourant_Gain_Vcontrole_vers_A": 3.1564,
+  "ThermoRes_SHTEMP_A": 0.003354,
+  "ThermoRes_SHTEMP_B": 0.00026,
+  "ThermoRes_SHTEMP_C": 1.6E-6,
+  "ThermoRes_SHTEMP_D": 6.3E-8,
+  "ThermoRes_SH_A": -14.65719,
+  "ThermoRes_SH_B": 4798.842,
+  "ThermoRes_SH_C": -115334,
+  "ThermoRes_SH_D": -3.730535E+6,
+  "ThermoRes_SH_R_nom": 10000,
+  "setupDelay": 4,
+  "GuT1_Denominateur": [
+    102.54,
+    1
+  ],
+  "GuT2_Denominateur": [
+    548.9,
+    138,
+    1
+  ],
+  "GuT3_Denominateur": [
+    3390.7,
+    156.8,
+    1
+  ],
+  "PerturbT1_Denominateur": [
+    127,
+    1
+  ],
+  "PerturbT2_Denominateur": [
+    144,
+    1
+  ],
+  "PerturbT3_Denominateur": [
+    3300,
+    167,
+    1
+  ],
+  "RC_deno": [
+    3.22E-8,
+    3.04E-5,
+    0.00955,
+    1
+  ],
+  "Regulateur_Denominateur": [
+    1,
+    -1.92565,
+    0.9257
+  ],
+  "Regulateur_Numerateur": [
+    1,
+    -1.91042,
+    0.9114
+  ],
+  "T1T3_Denominateur": [
+    1,
+    -1.94,
+    0.941
+  ],
+  "T1T3_Numerateur": [
+    0,
+    0.0002044,
+    0.0002003
+  ],
+  "T2T3_Denominateur": [
+    1,
+    -0.9746
+  ],
+  "T2T3_Numerateur": [
+    0,
+    0.02163
+  ]
+}
